@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+**/node_modules/
+vendor/
+__pycache__/
+*.pyc
+
+# Environment / kredensial (JANGAN commit)
+.env
+.env.*
+!.env.example
+
+# Log runtime
+logs/
+*.log
+
+# MinIO data lokal
+minio-data/
+data/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+
+# Backup lokal
+backend/
+db/backup_*.sql
+*.bak
