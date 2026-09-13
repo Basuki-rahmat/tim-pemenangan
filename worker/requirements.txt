@@ -1,0 +1,16 @@
+# ============================================================================
+# [Issue #06] Dependensi Python AI / OCR Worker
+# ============================================================================
+
+# Mode CPU (Default / Localhost Windows Laragon):
+# pip install -r requirements.txt
+
+# Mode GPU NVIDIA T4 (Server Bare Metal Biznet Gio):
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+# pip install -r requirements.txt
+
+numpy>=1.24.0
+redis>=5.0.0
+boto3>=1.28.0
+Pillow>=10.0.0
+requests>=2.31.0

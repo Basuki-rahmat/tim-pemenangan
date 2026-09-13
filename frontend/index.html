@@ -1,0 +1,2013 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel Admin — Rekapitulasi Form C1</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
+  <style>
+    :root {
+      --brand: #d40511; --brand-dark: #a0040d; --bg: #f8fafc; --card: #ffffff;
+      --text: #0f172a; --muted: #64748b; --border: #e2e8f0; --ok: #10b981; --err: #ef4444;
+      --accent: #2563eb; --side-w: 250px; --side-bg: #0f172a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ===== Topbar ===== */
+    .topbar {
+      position: sticky; top: 0; z-index: 40;
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      color: #fff; padding: 12px 18px;
+      border-bottom: 3px solid var(--brand);
+      display: flex; align-items: center; gap: 14px;
+    }
+    .hamburger {
+      background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2);
+      color: #fff; border-radius: 8px; font-size: 18px; line-height: 1;
+      padding: 8px 12px; cursor: pointer; flex-shrink: 0;
+    }
+    .hamburger:hover { background: rgba(255,255,255,.22); }
+    .topbar h1 { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+    .topbar p { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+    .top-user { margin-left: auto; font-size: 12.5px; color: #cbd5e1; white-space: nowrap; }
+    .top-user .badge { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.15); color: #fff; }
+
+    /* ===== Sidebar ===== */
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0; width: var(--side-w);
+      background: var(--side-bg); color: #cbd5e1; z-index: 50;
+      display: flex; flex-direction: column;
+      transition: transform .25s ease;
+    }
+    .brand { padding: 18px 16px 14px; border-bottom: 1px solid rgba(255,255,255,.1); }
+    .brand b { color: #fff; font-size: 15px; display: block; }
+    .brand small { color: #94a3b8; font-size: 11.5px; }
+    .side-nav { flex: 1; overflow-y: auto; padding: 10px 12px; }
+    .side-nav .nav-tabs { flex-direction: column; width: 100%; }
+    .side-nav .tab-btn { width: 100%; text-align: left; padding: 11px 14px; font-size: 13.5px; }
+    .side-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin: 12px 6px 4px; }
+    .side-footer { padding: 14px; border-top: 1px solid rgba(255,255,255,.1); font-size: 12.5px; display: flex; flex-direction: column; gap: 8px; }
+    .side-footer .btn-ghost { background: rgba(255,255,255,.1); color: #fff; font-size: 12px; }
+    body:not(.logged-in) .tab-btn[data-admin]::after { content: ' 🔒'; opacity: .7; }
+
+    .main { margin-left: var(--side-w); min-height: 100vh; transition: margin .25s ease; }
+    body.side-collapsed .main { margin-left: 0; }
+    body.side-collapsed .sidebar { transform: translateX(-100%); }
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 45; display: none; }
+
+    .nav-tabs { display: flex; gap: 8px; }
+    .tab-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .tab-btn:hover { background: rgba(255, 255, 255, 0.2); color: #fff; }
+    .tab-btn.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+    /* level tabs di dalam konten terang */
+    #wLevelTabs .tab-btn { background: #eef0f3; border-color: var(--border); color: var(--text); }
+    #wLevelTabs .tab-btn:hover { background: #e2e8f0; color: var(--text); }
+    #wLevelTabs .tab-btn.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+
+    .wrap { max-width: 1180px; margin: 24px auto; padding: 0 16px; }
+    .grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 20px; }
+    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .card h2 { font-size: 16px; margin-bottom: 14px; font-weight: 700; color: #1e293b; }
+
+    label { display: block; font-size: 12px; font-weight: 600; margin: 12px 0 4px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    input, select, button { font: inherit; }
+    input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: #fff; font-size: 14px; }
+    input:focus, select:focus { outline: 2px solid var(--brand); border-color: transparent; }
+
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .kandidat { border: 1px dashed var(--border); border-radius: 8px; padding: 12px; margin-top: 10px; background: #f8fafc; }
+    .kandidat .baris { display: grid; grid-template-columns: 1.4fr 1fr auto; gap: 8px; align-items: center; margin-top: 8px; }
+
+    .btn { display: inline-block; border: 0; cursor: pointer; padding: 11px 18px; border-radius: 8px; font-weight: 700; }
+    .btn-primary { background: var(--brand); color: #fff; width: 100%; margin-top: 18px; font-size: 14px; }
+    .btn-primary:hover { background: var(--brand-dark); }
+    .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-ghost { background: #eef0f3; color: var(--text); font-size: 12px; padding: 7px 12px; }
+    .badge { display:inline-block; background:#e2e8f0; border-radius:999px; padding:3px 10px; font-size:11px; font-weight:700; }
+    .statline { display:flex; gap:16px; flex-wrap:wrap; margin-top:8px; font-size:12.5px; color: var(--muted); }
+
+    #log {
+      margin-top: 14px;
+      background: #0f172a;
+      color: #94a3b8;
+      border-radius: 10px;
+      padding: 14px;
+      font-family: Consolas, monospace;
+      font-size: 12.5px;
+      max-height: 380px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    #log .err { color: #f87171; }
+    #log .ok { color: #34d399; }
+    #log .info { color: #60a5fa; }
+
+    /* DASHBOARD STYLES */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .metric-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .metric-card .title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+    .metric-card .value { font-size: 26px; font-weight: 800; color: #0f172a; margin-top: 6px; }
+    .metric-card .desc { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+    .chart-box { margin-top: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .candidate-row { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .candidate-header { display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; margin-bottom: 8px; gap: 8px; flex-wrap: wrap; }
+    .progress-bar-wrap { background: #e2e8f0; height: 12px; border-radius: 999px; overflow: hidden; }
+    .progress-bar { height: 100%; background: linear-gradient(90deg, #dc2626, #ef4444); border-radius: 999px; transition: width 0.6s ease; }
+    .progress-bar.blue { background: linear-gradient(90deg, #2563eb, #3b82f6); }
+    .progress-bar.emerald { background: linear-gradient(90deg, #059669, #10b981); }
+
+    .audit-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
+    .audit-table th, .audit-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    .audit-table th { background: #f1f5f9; font-size: 11px; text-transform: uppercase; color: var(--muted); }
+    .audit-table a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .audit-table a:hover { text-decoration: underline; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ===== Peta TPS (Leaflet) ===== */
+    #tpsMap { height: 320px; border-radius: 10px; border: 1px solid var(--border); z-index: 1; }
+    #tpsMapWrap { margin-top: 10px; }
+    .map-tools { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .map-tools input { flex: 2; min-width: 160px; }
+    @media (max-width: 900px) { #tpsMap { height: 260px; } }
+
+    /* ===== Responsif ===== */
+    @media (max-width: 900px) {
+      .main { margin-left: 0; }
+      .sidebar { transform: translateX(-100%); width: min(280px, 84vw); }
+      body.side-open .sidebar { transform: none; }
+      body.side-open .overlay { display: block; }
+      .topbar h1 { font-size: 14px; }
+      .topbar p { display: none; }
+      .top-user { display: none; }
+      .wrap { margin: 14px auto; padding: 0 10px; }
+      .card { padding: 16px; }
+      .audit-table th, .audit-table td { padding: 8px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><b>🗳️ Tim Pemenangan</b><small>Rekap Form C1 · 29.000 TPS</small></div>
+    <nav class="side-nav">
+      <div class="side-label">Administrator</div>
+      <div class="nav-tabs">
+        <button class="tab-btn active" data-admin id="tabDashAdminBtn" onclick="switchTab('dashadmin')">📈 Dashboard Admin</button>
+        <button class="tab-btn" data-admin id="tabAdminBtn" onclick="switchTab('admin')">🛠️ Kelola Wilayah</button>
+        <button class="tab-btn" data-admin id="tabKandidatBtn" onclick="switchTab('kandidat')">🗳️ Kategori & Kandidat</button>
+        <button class="tab-btn" data-admin id="tabDapilBtn" onclick="switchTab('dapil')">🗺️ Dapil & TPS</button>
+        <button class="tab-btn" data-admin id="tabSaksiBtn" onclick="switchTab('saksi')">👥 Registrasi Saksi</button>
+      </div>
+    </nav>
+    <div class="side-footer">
+      <span id="sideUser">🔓 Belum login</span>
+      <button class="btn btn-ghost" id="sideAuthBtn" onclick="sideAuth()">Masuk</button>
+    </div>
+  </aside>
+  <div class="overlay" id="overlay" onclick="toggleSidebar(false)"></div>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+      <div>
+        <h1>Panel Admin — Rekapitulasi Form C1</h1>
+        <p>Kelola Wilayah, Kandidat & Monitoring Antrean Redis BullMQ</p>
+      </div>
+      <div class="top-user"><span class="badge" id="topUser">🔓 Publik</span></div>
+    </div>
+
+    <div class="wrap">
+    <!-- TAB 3: ADMIN WILAYAH + KANDIDAT -->
+    <div id="tabAdmin" class="tab-content">
+      <div class="card" id="wLoginCard" style="max-width: 420px; margin: 0 auto 20px;">
+        <h2>🔐 Login Admin</h2>
+        <p style="font-size: 12.5px; color: var(--muted); margin: 6px 0 4px;">Halaman kelola wilayah khusus admin. Halaman Form Saksi & Dashboard tetap publik.</p>
+        <label>Username</label>
+        <input id="wLoginUser" placeholder="username" autocomplete="username" />
+        <label>Password</label>
+        <input id="wLoginPass" type="password" placeholder="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')wLogin()" />
+        <button class="btn btn-primary" onclick="wLogin()">Masuk</button>
+        <div id="wLoginMsg" style="margin-top: 10px; font-size: 13px;"></div>
+      </div>
+
+      <div id="wAdminBody" style="display: none;">
+      <div class="card" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+          <h2 style="margin: 0;">Kelola Data Wilayah</h2>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+            <span class="badge" id="wUserBadge">admin</span>
+            <button class="btn btn-ghost" onclick="wTogglePass()">🔑 Ganti Password</button>
+            <button class="btn btn-ghost" onclick="wLogout()">🚪 Keluar</button>
+          </div>
+        </div>
+        <div id="wPassBox" style="display: none; border: 1px dashed var(--border); border-radius: 8px; padding: 12px; margin-bottom: 14px; background: #f8fafc;">
+          <div class="row2">
+            <div><label>Password Lama</label><input id="wPassOld" type="password" /></div>
+            <div><label>Password Baru (min. 6)</label><input id="wPassNew" type="password" /></div>
+          </div>
+          <button class="btn btn-ghost" style="margin-top: 10px;" onclick="wChangePass()">Simpan Password</button>
+        </div>
+        <div class="nav-tabs" style="margin-bottom: 14px;" id="wLevelTabs">
+          <button class="tab-btn active" data-level="provinsi" onclick="wSetLevel('provinsi')">Provinsi</button>
+          <button class="tab-btn" data-level="kabupaten" onclick="wSetLevel('kabupaten')">Kabupaten/Kota</button>
+          <button class="tab-btn" data-level="kecamatan" onclick="wSetLevel('kecamatan')">Kecamatan</button>
+          <button class="tab-btn" data-level="desa" onclick="wSetLevel('desa')">Desa/Kelurahan</button>
+        </div>
+        <div class="row2" style="grid-template-columns: 1fr 1fr 1fr;">
+          <div id="wFProvWrap"><label>Filter Provinsi</label><select id="wFProv" onchange="wFilterChange()"><option value="">— Semua —</option></select></div>
+          <div id="wFKabWrap"><label>Filter Kabupaten/Kota</label><select id="wFKab" onchange="wFilterChange()"><option value="">— Semua —</option></select></div>
+          <div id="wFKecWrap"><label>Filter Kecamatan</label><select id="wFKec" onchange="wFilterChange()"><option value="">— Semua —</option></select></div>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
+          <input id="wSearch" placeholder="Cari nama..." style="flex: 1; min-width: 180px;" oninput="wLoad()" />
+          <button class="btn btn-ghost" onclick="wLoad()">🔍 Cari</button>
+          <button class="btn btn-ghost" onclick="wShowForm(null)">+ Tambah</button>
+        </div>
+      </div>
+
+      <div class="card" id="wFormCard" style="display: none; margin-bottom: 20px;">
+        <h2 id="wFormTitle">Tambah Data</h2>
+        <input type="hidden" id="wEditId" value="" />
+        <div class="row2" style="grid-template-columns: 1fr 1fr 1fr;">
+          <div id="wIdWrap"><label>ID (kode Kemendagri)</label><input id="wFId" type="number" placeholder="mis. 18" /></div>
+          <div><label>Nama <span style="color: var(--brand);">*</span></label><input id="wFNama" placeholder="Nama wilayah" /></div>
+          <div id="wKodeWrap"><label>Kode</label><input id="wFKode" placeholder="opsional" /></div>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 16px;">
+          <button class="btn btn-primary" style="width: auto; margin-top: 0;" id="wBtnSave" onclick="wSave()">💾 Simpan</button>
+          <button class="btn btn-ghost" onclick="wHideForm()">Batal</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <h2 id="wTableTitle">Daftar Provinsi</h2>
+          <span id="wTotal" class="badge">0 data</span>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="audit-table">
+            <thead><tr><th>ID</th><th>Kode</th><th>Nama</th><th>Induk</th><th>Aksi</th></tr></thead>
+            <tbody id="wTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 5: KATEGORI & KANDIDAT -->
+    <div id="tabKandidat" class="tab-content">
+      <div class="card" id="kLoginCard" style="max-width: 420px; margin: 0 auto 20px;">
+        <h2>🔐 Area Admin</h2>
+        <p style="font-size: 13px; color: var(--muted);">Silakan login dulu untuk mengelola kategori & kandidat.</p>
+        <button class="btn btn-primary" onclick="switchTab('admin')">Ke Halaman Login</button>
+      </div>
+
+      <div id="kBody" style="display: none;">
+      <div class="card" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <h2>Kategori Pemilihan</h2>
+          <span id="kKatTotal" class="badge">0 data</span>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+          <input id="kKatId" placeholder="ID kategori (mis. PILEG_DPR_RI)" style="flex: 1; min-width: 160px;" />
+          <input id="kKatNama" placeholder="Nama pemilihan" style="flex: 2; min-width: 200px;" />
+          <input type="hidden" id="kKatEditId" value="" />
+          <button class="btn btn-ghost" onclick="kSaveKat()">💾 Simpan</button>
+          <button class="btn btn-ghost" onclick="kCancelKat()">Batal</button>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="audit-table">
+            <thead><tr><th>ID</th><th>Nama Pemilihan</th><th>Kandidat</th><th>Aksi</th></tr></thead>
+            <tbody id="kKatBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <h2>Kandidat</h2>
+          <span id="kKandTotal" class="badge">0 data</span>
+        </div>
+        <div class="row2" style="grid-template-columns: 1fr 1fr 1fr; margin-top: 10px;">
+          <div><label>Filter Kategori</label><select id="kFKat" onchange="kLoadKand()"><option value="">— Semua —</option></select></div>
+          <div><label>Filter Tipe</label><select id="kFTipe" onchange="kLoadKand()">
+            <option value="">— Semua —</option><option>PASLON</option><option>PARTAI</option><option>CALEG</option><option>DPD</option>
+          </select></div>
+          <div><label>Cari</label><input id="kFSearch" placeholder="nama / id..." oninput="kLoadKand()" /></div>
+        </div>
+        <div class="row2" style="grid-template-columns: 1fr 1fr 1fr 1fr; margin-top: 10px;">
+          <div><label>ID Kandidat *</label><input id="kKId" placeholder="mis. PASLON_3" /></div>
+          <div><label>Kategori *</label><select id="kKKat"><option value="">— Pilih —</option></select></div>
+          <div><label>Tipe *</label><select id="kKTipe"><option>PASLON</option><option>PARTAI</option><option>CALEG</option><option>DPD</option></select></div>
+          <div><label>No. Urut *</label><input id="kKNo" type="number" min="1" value="1" /></div>
+        </div>
+        <div style="margin-top: 10px;"><label>Dapil (khusus pileg)</label><select id="kKDapil"><option value="">— Tanpa dapil —</option></select></div>
+        <div style="margin-top: 10px;"><label>Nama *</label><input id="kKNama" placeholder="Nama kandidat / partai / caleg" /></div>
+        <div class="row2" style="margin-top: 10px;">
+          <div>
+            <label>Foto</label>
+            <input id="kKFoto" type="file" accept="image/*" onchange="kFotoChange()" />
+            <div class="statline"><span id="kFotoStat">Belum pilih foto (opsional)</span></div>
+            <img id="kFotoPrev" style="display: none; max-width: 120px; border-radius: 8px; margin-top: 8px; border: 1px solid var(--border);" alt="pratinjau foto" />
+            <div><button class="btn btn-ghost" type="button" style="margin-top: 6px;" onclick="kFotoClear()">✖ Hapus foto</button></div>
+            <input type="hidden" id="kKFotoUrl" value="" />
+          </div>
+          <div><label>Partai</label><input id="kKPartai" placeholder="Nama partai pengusung (opsional)" /></div>
+        </div>
+        <input type="hidden" id="kKEditId" value="" />
+        <div style="display: flex; gap: 10px; margin-top: 12px;">
+          <button class="btn btn-ghost" onclick="kSaveKand()">💾 Simpan Kandidat</button>
+          <button class="btn btn-ghost" onclick="kCancelKand()">Batal</button>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="audit-table">
+            <thead><tr><th>ID</th><th>Foto</th><th>Nama</th><th>Partai</th><th>Kategori</th><th>Dapil</th><th>Tipe</th><th>No</th><th>Aksi</th></tr></thead>
+            <tbody id="kKandBody"></tbody>
+          </table>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: DAPIL & TPS -->
+    <div id="tabDapil" class="tab-content">
+      <div class="card" id="dLoginCard" style="max-width: 420px; margin: 0 auto 20px;">
+        <h2>🔐 Area Admin</h2>
+        <p style="font-size: 13px; color: var(--muted);">Silakan login dulu untuk mengelola dapil & TPS.</p>
+        <button class="btn btn-primary" onclick="switchTab('admin')">Ke Halaman Login</button>
+      </div>
+
+      <div id="dBody" style="display: none;">
+      <div class="card" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <h2>Daftar Dapil (PKPU 6/2023)</h2>
+          <span id="dTotal" class="badge">0 data</span>
+        </div>
+        <div class="row2" style="grid-template-columns: 1fr 2fr; margin-top: 10px;">
+          <div><label>Filter Tingkat</label><select id="dFTingkat" onchange="dLoad()">
+            <option value="">— Semua —</option><option>DPR_RI</option><option>DPD</option><option>DPRD_PROV</option><option>DPRD_KABKOTA</option>
+          </select></div>
+          <div><label>Cari</label><input id="dFSearch" placeholder="nama / kode / id..." oninput="dLoad()" /></div>
+        </div>
+        <div class="row2" style="grid-template-columns: 1fr 1fr 1fr; margin-top: 10px;">
+          <div><label>ID Dapil *</label><input id="dFId" placeholder="mis. DPRDKAB-1809-7" /></div>
+          <div><label>Tingkat *</label><select id="dFTipe" onchange="dTipeChange()"><option>DPR_RI</option><option>DPD</option><option>DPRD_PROV</option><option>DPRD_KABKOTA</option></select></div>
+          <div><label>Kode *</label><input id="dFKode" placeholder="mis. 1809-7" /></div>
+        </div>
+        <div class="row2" style="margin-top: 10px;">
+          <div><label>Nama *</label><input id="dFNama" placeholder="mis. Dapil Pesawaran 7" /></div>
+          <div id="dFKabWrap"><label>Kabupaten/Kota (khusus DPRD Kab/Kota) *</label><select id="dFKab"><option value="">— Pilih —</option></select></div>
+        </div>
+        <div style="margin-top: 10px;"><label>Jumlah Kursi *</label><input id="dFKursi" type="number" min="1" value="3" style="max-width: 160px;" /></div>
+        <input type="hidden" id="dFEditId" value="" />
+        <div style="display: flex; gap: 10px; margin-top: 12px;">
+          <button class="btn btn-ghost" onclick="dSave()">💾 Simpan Dapil</button>
+          <button class="btn btn-ghost" onclick="dCancel()">Batal</button>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="audit-table">
+            <thead><tr><th>Kode</th><th>Nama</th><th>Tingkat</th><th>Kab/Kota</th><th>Kursi</th><th>Anggota</th><th>Aksi</th></tr></thead>
+            <tbody id="dDapilBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" id="dAnggotaCard" style="display: none; margin-bottom: 20px;">
+        <h2 id="dAnggotaTitle">Anggota Dapil</h2>
+        <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+          <select id="dAnggotaAdd" style="flex: 1; min-width: 200px;"><option value="">— Pilih anggota —</option></select>
+          <button class="btn btn-ghost" onclick="dAddAnggota()">+ Tambah Anggota</button>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="audit-table">
+            <thead><tr><th>ID</th><th>Kode</th><th>Nama</th><th>Aksi</th></tr></thead>
+            <tbody id="dAnggotaBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <h2>Master TPS (maks 500 pemilih/TPS)</h2>
+          <span id="tTotal" class="badge">0 data</span>
+        </div>
+        <div class="row2" style="grid-template-columns: 1fr 1fr 1fr 1fr; margin-top: 10px;">
+          <div><label>Kab/Kota</label><select id="tFKab" onchange="tKabChange()"><option value="">— Semua —</option></select></div>
+          <div><label>Kecamatan</label><select id="tFKec" onchange="tKecChange()"><option value="">— Semua —</option></select></div>
+          <div><label>Desa</label><select id="tFDesa" onchange="tLoad(0)"><option value="">— Semua —</option></select></div>
+          <div><label>Cari ID/No</label><input id="tFSearch" placeholder="..." oninput="tLoad(0)" /></div>
+        </div>
+        <div class="row2" style="grid-template-columns: 1fr 1fr 1fr; margin-top: 10px;">
+          <div><label>ID TPS *</label><input id="tFId" placeholder="mis. 1809151001001" /></div>
+          <div><label>No. TPS *</label><input id="tFNo" placeholder="mis. 001" /></div>
+          <div><label>DPT (0–500) *</label><input id="tFJml" type="number" min="0" max="500" value="0" /></div>
+        </div>
+        <div class="row2" style="margin-top: 10px;">
+          <div><label>Latitude GPS</label><input id="tFLat" type="number" step="any" min="-90" max="90" placeholder="mis. -5.3971" onchange="tMapSync()" /></div>
+          <div><label>Longitude GPS</label><input id="tFLng" type="number" step="any" min="-180" max="180" placeholder="mis. 105.2668" onchange="tMapSync()" /></div>
+        </div>
+        <div style="margin-top: 10px;">
+          <button class="btn btn-ghost" type="button" onclick="tMapToggle()">🗺️ Pilih di Peta</button>
+        </div>
+        <div id="tpsMapWrap" style="display: none;">
+          <div id="tpsMap"></div>
+          <div class="map-tools">
+            <input id="tMapSearch" placeholder="Cari desa/kecamatan... (Enter)" onkeydown="if(event.key==='Enter')tMapSearch()" />
+            <button class="btn btn-ghost" type="button" onclick="tMapSearch()">🔍</button>
+            <button class="btn btn-ghost" type="button" onclick="tMapGPS()">📍 Lokasi Saya</button>
+          </div>
+          <p style="font-size: 11.5px; color: var(--muted); margin-top: 6px;">Klik peta / geser pin untuk mengisi lat-long. Kanan atas: Peta Jalan 🗺️ / Satelit 🛰️ + overlay 🏘️ Batas Desa resmi BIG 1:10.000.</p>
+        </div>
+        <p style="font-size: 12px; color: var(--muted); margin-top: 8px;" id="tIndukInfo">Induk desa: ikut filter Desa di atas. Teks provinsi/kota/kecamatan/kelurahan diisi otomatis.</p>
+        <input type="hidden" id="tFEditId" value="" />
+        <div style="display: flex; gap: 10px; margin-top: 12px;">
+          <button class="btn btn-ghost" onclick="tSave()">💾 Simpan TPS</button>
+          <button class="btn btn-ghost" onclick="tCancel()">Batal</button>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="audit-table">
+            <thead><tr><th>ID TPS</th><th>Desa/Kel</th><th>Kecamatan</th><th>No</th><th>DPT</th><th>GPS</th><th>Aksi</th></tr></thead>
+            <tbody id="tBody"></tbody>
+          </table>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+          <button class="btn btn-ghost" onclick="tPage(-1)">← Sebelumnya</button>
+          <span id="tPageInfo" class="badge">0 data</span>
+          <button class="btn btn-ghost" onclick="tPage(1)">Berikutnya →</button>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- TAB 7: REGISTRASI SAKSI -->
+    <div id="tabSaksi" class="tab-content">
+      <div class="card" id="sLoginCard" style="max-width: 420px; margin: 0 auto 20px;">
+        <h2>🔐 Area Admin</h2>
+        <p style="font-size: 13px; color: var(--muted);">Silakan login dulu untuk registrasi saksi.</p>
+        <button class="btn btn-primary" onclick="switchTab('admin')">Ke Halaman Login</button>
+      </div>
+
+      <div id="sBody" style="display: none;">
+      <div class="metric-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+        <div class="metric-card"><div class="title">Total Saksi</div><div class="value" id="sTotalCard">0</div><div class="desc">Terdaftar</div></div>
+        <div class="metric-card"><div class="title">TPS Terisi</div><div class="value" id="sTpsCard">0</div><div class="desc">dari 27.309 TPS</div></div>
+      </div>
+
+      <div class="card" style="margin-bottom: 20px;">
+        <h2>Formulir Saksi</h2>
+        <div class="row2" style="margin-top: 10px;">
+          <div><label>Nama Lengkap *</label><input id="sFNama" placeholder="sesuai KTP" /></div>
+          <div><label>NIK (16 digit) *</label><input id="sFNik" placeholder="16 digit angka" maxlength="16" inputmode="numeric" /></div>
+        </div>
+        <div class="row2" style="margin-top: 10px;">
+          <div><label>Username (kosongkan = otomatis)</label><input id="sFUser" placeholder="mis. soni_blb (opsional)" /></div>
+          <div><label>No. HP * (untuk WA)</label><input id="sFHp" placeholder="08xx..." /></div>
+        </div>
+        <div style="margin-top: 10px;"><label>Keterangan</label><input id="sFKet" placeholder="opsional" /></div>
+        <div class="row2" style="grid-template-columns: 1fr 1fr 1fr 1fr; margin-top: 10px;">
+          <div><label>Kab/Kota *</label><select id="sFKab" onchange="sKabChange()"><option value="">— Pilih —</option></select></div>
+          <div><label>Kecamatan *</label><select id="sFKec" onchange="sKecChange()"><option value="">— Pilih —</option></select></div>
+          <div><label>Desa *</label><select id="sFDesa" onchange="sDesaChange()"><option value="">— Pilih —</option></select></div>
+          <div><label>TPS *</label><select id="sFTps"><option value="">— Pilih desa dulu —</option></select></div>
+        </div>
+        <div style="margin-top: 10px;"><label>Ditugaskan untuk Kandidat</label><select id="sFKandidat"><option value="">— Tanpa penugasan khusus —</option></select></div>
+        <input type="hidden" id="sFEditId" value="" />
+        <div style="display: flex; gap: 10px; margin-top: 12px;">
+          <button class="btn btn-ghost" onclick="sSave()">💾 Simpan Saksi</button>
+          <button class="btn btn-ghost" onclick="sCancel()">Batal</button>
+        </div>
+      </div>
+
+      <div class="card" id="sCredBox" style="display: none; margin-bottom: 20px; border-left: 4px solid var(--ok);">
+        <h2>✅ Akun Saksi Tersimpan</h2>
+        <div class="statline" style="font-size: 14px;">
+          <span>Username: <strong id="sCredUser">-</strong></span>
+          <span>Password: <strong id="sCredPass">-</strong></span>
+        </div>
+        <p style="font-size: 12px; color: var(--err); margin-top: 8px;">⚠️ Password hanya tampil sekali ini. Segera kirim via WA.</p>
+        <div style="display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;">
+          <a class="btn btn-primary" style="width: auto; margin-top: 0; text-decoration: none;" id="sCredWa" href="#" target="_blank">💬 Kirim ke WA Saksi</a>
+          <button class="btn btn-ghost" onclick="$('sCredBox').style.display='none'">Tutup</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <h2>Daftar Saksi</h2>
+          <span id="sTotal" class="badge">0 data</span>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+          <input id="sFSearch" placeholder="Cari nama / NIK..." style="flex: 1; min-width: 180px;" oninput="sLoad(0)" />
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="audit-table">
+            <thead><tr><th>ID</th><th>Nama</th><th>NIK</th><th>Username</th><th>No. HP</th><th>TPS</th><th>Desa/Kec</th><th>Kandidat</th><th>Aksi</th></tr></thead>
+            <tbody id="sSaksiBody"></tbody>
+          </table>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+          <button class="btn btn-ghost" onclick="sPage(-1)">← Sebelumnya</button>
+          <span id="sPageInfo" class="badge">0 data</span>
+          <button class="btn btn-ghost" onclick="sPage(1)">Berikutnya →</button>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: DASHBOARD ADMIN -->
+    <div id="tabDashAdmin" class="tab-content active">
+      <div class="card" id="aLoginCard" style="max-width: 420px; margin: 0 auto 20px;">
+        <h2>🔐 Area Admin</h2>
+        <p style="font-size: 13px; color: var(--muted);">Silakan login dulu untuk melihat dashboard admin.</p>
+        <button class="btn btn-primary" onclick="switchTab('admin')">Ke Halaman Login</button>
+      </div>
+
+      <div id="aBody" style="display: none;">
+        <div class="metric-grid">
+          <div class="metric-card"><div class="title">TPS Masuk</div><div class="value" id="aTPS">0</div><div class="desc">Distinct TPS</div></div>
+          <div class="metric-card"><div class="title">Transaksi C1</div><div class="value" id="aTx">0</div><div class="desc">Baris transaksi_c1</div></div>
+          <div class="metric-card"><div class="title">Suara Sah</div><div class="value" id="aSah">0</div><div class="desc">Total terhitung</div></div>
+          <div class="metric-card"><div class="title">Tidak Sah</div><div class="value" id="aTidak">0</div><div class="desc">Total rusak/batal</div></div>
+          <div class="metric-card"><div class="title">Backlog Antrean</div><div class="value" id="aBacklog">0</div><div class="desc">Waiting + Active</div></div>
+          <div class="metric-card"><div class="title">Job Gagal</div><div class="value" id="aFail">0</div><div class="desc">BullMQ failed</div></div>
+        </div>
+
+        <div class="card" style="margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <h2>Status Pipeline & Master Data</h2>
+            <button class="btn btn-ghost" onclick="aLoad()">🔄 Refresh</button>
+          </div>
+          <div class="statline" id="aQueue" style="margin-top: 10px;"></div>
+          <div class="statline" id="aMaster" style="margin-top: 6px;"></div>
+        </div>
+
+        <div class="card" style="margin-bottom: 20px;">
+          <h2>Per Kategori Pemilihan</h2>
+          <div style="overflow-x: auto;">
+            <table class="audit-table">
+              <thead><tr><th>Kategori</th><th>TPS</th><th>Transaksi</th><th>Suara Sah</th><th>Tidak Sah</th></tr></thead>
+              <tbody id="aKatBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      <div class="card">
+          <h2>Monitoring Transaksi Masuk</h2>
+          <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+            <select id="aFKat" onchange="aTrx(0)" style="flex: 1; min-width: 160px;"><option value="">— Semua kategori —</option></select>
+            <input id="aFTps" placeholder="Cari TPS ID..." style="flex: 1; min-width: 160px;" oninput="aTrx(0)" />
+          </div>
+          <div style="overflow-x: auto;">
+            <table class="audit-table">
+              <thead><tr><th>Waktu</th><th>TPS</th><th>Kategori</th><th>Sah</th><th>Tidak Sah</th><th>Detail</th><th>OCR</th><th>C1</th></tr></thead>
+              <tbody id="aTrxBody"></tbody>
+            </table>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+            <button class="btn btn-ghost" onclick="aPage(-1)">← Sebelumnya</button>
+            <span id="aPageInfo" class="badge">0 data</span>
+            <button class="btn btn-ghost" onclick="aPage(1)">Berikutnya →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /.wrap -->
+  </div><!-- /.main -->
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function isMobile() {
+      return window.matchMedia('(max-width: 900px)').matches;
+    }
+
+    function toggleSidebar(force) {
+      if (isMobile()) {
+        const open = force !== undefined ? force : !document.body.classList.contains('side-open');
+        document.body.classList.toggle('side-open', open);
+      } else {
+        const collapsed = force !== undefined ? !force : !document.body.classList.contains('side-collapsed');
+        document.body.classList.toggle('side-collapsed', collapsed);
+      }
+    }
+
+    function sideAuth() {
+      if (localStorage.getItem('c1_admin_token')) wLogout();
+      else switchTab('admin');
+    }
+
+    function switchTab(tab) {
+      const tabs = ['admin', 'dashadmin', 'kandidat', 'dapil', 'saksi'];
+      const titles = { admin: 'Admin', dashadmin: 'DashAdmin', kandidat: 'Kandidat', dapil: 'Dapil', saksi: 'Saksi' };
+      tabs.forEach((t) => {
+        const name = titles[t];
+        $('tab' + name).classList.toggle('active', t === tab);
+        $('tab' + name + 'Btn').classList.toggle('active', t === tab);
+      });
+      if (isMobile()) toggleSidebar(false);
+      if (tab === 'admin') wInit();
+      if (tab === 'dashadmin') aInit();
+      if (tab === 'kandidat') kInit();
+      if (tab === 'dapil') dInit();
+      if (tab === 'saksi') sInit();
+    }
+
+    // Auto-refresh dashboard admin setiap 4 detik bila tab aktif + sudah login
+    setInterval(() => {
+      if ($('tabDashAdmin').classList.contains('active') && wToken()) {
+        aLoad();
+      }
+    }, 4000);
+
+    // ================= ADMIN WILAYAH (CRUD) =================
+    const WAPI = location.origin + '/api/wilayah';
+    const WLVL = {
+      provinsi: { title: 'Daftar Provinsi', parentCol: null, parentName: null },
+      kabupaten: { title: 'Daftar Kabupaten/Kota', parentCol: 'provinsi_id', parentName: 'Provinsi' },
+      kecamatan: { title: 'Daftar Kecamatan', parentCol: 'kabupaten_id', parentName: 'Kabupaten/Kota' },
+      desa: { title: 'Daftar Desa/Kelurahan', parentCol: 'kecamatan_id', parentName: 'Kecamatan' }
+    };
+    let wLevel = 'provinsi';
+    let wInitDone = false;
+    let wUser = null;
+
+    function wToken() { return localStorage.getItem('c1_admin_token') || ''; }
+
+    function wRefreshAuthUI() {
+      const logged = !!wUser;
+      document.body.classList.toggle('logged-in', logged);
+      $('sideUser').textContent = logged ? `👤 ${wUser}` : '🔓 Belum login';
+      $('sideAuthBtn').textContent = logged ? 'Keluar' : 'Masuk';
+      $('topUser').textContent = logged ? `👤 ${wUser}` : '🔓 Publik';
+    }
+
+    function wShowLogin(msg) {
+      wUser = null;
+      wRefreshAuthUI();
+      $('wLoginCard').style.display = '';
+      $('wAdminBody').style.display = 'none';
+      $('kLoginCard').style.display = '';
+      $('kBody').style.display = 'none';
+      $('dLoginCard').style.display = '';
+      $('dBody').style.display = 'none';
+      $('sLoginCard').style.display = '';
+      $('sBody').style.display = 'none';
+      if (msg) {
+        $('wLoginMsg').innerHTML = `<span class="err" style="color: var(--err);">${wEsc(msg)}</span>`;
+      }
+    }
+
+    function wShowAdmin(username) {
+      wUser = username;
+      wRefreshAuthUI();
+      $('wLoginCard').style.display = 'none';
+      $('wAdminBody').style.display = '';
+      $('wLoginMsg').innerHTML = '';
+      $('wLoginPass').value = '';
+      kLoadAll();
+    }
+
+    function wInit() {
+      if (!wInitDone) { wInitDone = true; }
+      if (!wToken()) { wShowLogin(); return; }
+      wFetchJSON(`${location.origin}/api/auth/me`)
+        .then((me) => {
+          wShowAdmin(me.data.username);
+          wLoadParents();
+          wLoad();
+        })
+        .catch(() => {
+          localStorage.removeItem('c1_admin_token');
+          wShowLogin('Sesi berakhir, silakan login kembali.');
+        });
+    }
+
+    async function wLogin() {
+      const username = $('wLoginUser').value.trim();
+      const password = $('wLoginPass').value;
+      if (!username || !password) { wShowLogin('Username dan password wajib diisi.'); return; }
+      try {
+        const res = await fetch(`${location.origin}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        localStorage.setItem('c1_admin_token', data.data.token);
+        wShowAdmin(data.data.username);
+        wLoadParents();
+        wLoad();
+      } catch (err) {
+        wShowLogin(err.message);
+      }
+    }
+
+    async function wLogout() {
+      try {
+        await fetch(`${location.origin}/api/auth/logout`, {
+          method: 'POST', headers: { 'Authorization': 'Bearer ' + wToken() }
+        });
+      } catch (_) { /* abaikan */ }
+      localStorage.removeItem('c1_admin_token');
+      wShowLogin();
+    }
+
+    function wTogglePass() {
+      const box = $('wPassBox');
+      box.style.display = box.style.display === 'none' ? '' : 'none';
+    }
+
+    async function wChangePass() {
+      try {
+        const data = await wFetchJSON(`${location.origin}/api/auth/change-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ old_password: $('wPassOld').value, new_password: $('wPassNew').value })
+        });
+        $('wPassOld').value = '';
+        $('wPassNew').value = '';
+        wTogglePass();
+        alert(data.message || 'Password berhasil diubah');
+      } catch (err) {
+        alert('Gagal: ' + err.message);
+      }
+    }
+
+    function wSetLevel(lvl) {
+      wLevel = lvl;
+      document.querySelectorAll('#wLevelTabs .tab-btn').forEach((b) => {
+        b.classList.toggle('active', b.dataset.level === lvl);
+      });
+      $('wTableTitle').textContent = WLVL[lvl].title;
+      $('wIdWrap').style.display = lvl === 'provinsi' ? '' : 'none';
+      $('wKodeWrap').style.display = lvl === 'provinsi' ? 'none' : '';
+      $('wFProvWrap').style.display = lvl === 'provinsi' ? 'none' : '';
+      $('wFKabWrap').style.display = (lvl === 'kecamatan' || lvl === 'desa') ? '' : 'none';
+      $('wFKecWrap').style.display = lvl === 'desa' ? '' : 'none';
+      wHideForm();
+      wLoad();
+    }
+
+    async function wFetchJSON(url, opts) {
+      const headers = Object.assign({}, (opts && opts.headers) || {});
+      if (wToken()) headers['Authorization'] = 'Bearer ' + wToken();
+      const res = await fetch(url, Object.assign({}, opts, { headers }));
+      const data = await res.json();
+      if (res.status === 401 && wUser) {
+        localStorage.removeItem('c1_admin_token');
+        wShowLogin('Sesi berakhir, silakan login kembali.');
+      }
+      if (!data.success) throw new Error(data.error || ('HTTP ' + res.status));
+      return data;
+    }
+
+    function wFillSelect(el, rows, valKey, labelKey, placeholder) {
+      const cur = el.value;
+      el.innerHTML = '<option value="">' + placeholder + '</option>' + rows.map((r) =>
+        `<option value="${r[valKey]}">${r[labelKey]}</option>`).join('');
+      if ([...el.options].some((o) => o.value === cur)) el.value = cur;
+    }
+
+    async function wLoadParents() {
+      const prov = await wFetchJSON(`${WAPI}/provinsi`);
+      wFillSelect($('wFProv'), prov.data, 'id', 'nama', '— Semua —');
+    }
+
+    async function wFilterChange() {
+      const p = $('wFProv').value, k = $('wFKab').value;
+      if (wLevel === 'kabupaten' || wLevel === 'kecamatan' || wLevel === 'desa') {
+        if (p) {
+          const r = await wFetchJSON(`${WAPI}/kabupaten?provinsi_id=${encodeURIComponent(p)}`);
+          wFillSelect($('wFKab'), r.data, 'id', 'nama', '— Semua —');
+        } else {
+          $('wFKab').innerHTML = '<option value="">— Semua —</option>';
+          $('wFKec').innerHTML = '<option value="">— Semua —</option>';
+        }
+      }
+      if (wLevel === 'desa') {
+        if (k) {
+          const r = await wFetchJSON(`${WAPI}/kecamatan?kabupaten_id=${encodeURIComponent(k)}`);
+          wFillSelect($('wFKec'), r.data, 'id', 'nama', '— Semua —');
+        } else {
+          $('wFKec').innerHTML = '<option value="">— Semua —</option>';
+        }
+      }
+      wLoad();
+    }
+
+    function wListURL() {
+      const q = $('wSearch').value.trim();
+      const s = q ? `&search=${encodeURIComponent(q)}` : '';
+      if (wLevel === 'provinsi') return `${WAPI}/provinsi`;
+      if (wLevel === 'kabupaten') return `${WAPI}/kabupaten?provinsi_id=${encodeURIComponent($('wFProv').value)}${s}`;
+      if (wLevel === 'kecamatan') return `${WAPI}/kecamatan?kabupaten_id=${encodeURIComponent($('wFKab').value)}${s}`;
+      return `${WAPI}/desa?kecamatan_id=${encodeURIComponent($('wFKec').value)}${s}`;
+    }
+
+    function wParentLabel(r) {
+      if (wLevel === 'kabupaten') return r.provinsi_id ? 'Prov ID: ' + r.provinsi_id : '-';
+      if (wLevel === 'kecamatan') return r.kabupaten || ('Kab ID: ' + r.kabupaten_id);
+      if (wLevel === 'desa') return r.kecamatan || ('Kec ID: ' + r.kecamatan_id);
+      return '-';
+    }
+
+    function wEsc(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    async function wLoad() {
+      try {
+        const data = await wFetchJSON(wListURL());
+        $('wTotal').textContent = data.total + ' data';
+        $('wTableBody').innerHTML = data.data.map((r) => `
+          <tr>
+            <td><strong>${r.id}</strong></td>
+            <td>${wEsc(r.kode || '-')}</td>
+            <td>${wEsc(r.nama)}</td>
+            <td><span class="badge">${wEsc(wParentLabel(r))}</span></td>
+            <td style="white-space: nowrap;">
+              <button class="btn btn-ghost" onclick="wShowForm(${r.id})">✏️ Edit</button>
+              <button class="btn btn-ghost" onclick="wDel(${r.id}, '${wEsc(r.nama).replace(/'/g, "\\'")}')">🗑️ Hapus</button>
+            </td>
+          </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);">Tidak ada data</td></tr>';
+      } catch (err) {
+        $('wTableBody').innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--err);">Gagal memuat: ${wEsc(err.message)}</td></tr>`;
+      }
+    }
+
+    function wShowForm(id) {
+      $('wFormCard').style.display = '';
+      $('wEditId').value = id || '';
+      $('wFormTitle').textContent = (id ? 'Edit ' : 'Tambah ') + WLVL[wLevel].title.replace('Daftar ', '');
+      if (id) {
+        const tr = [...$('wTableBody').rows].find((tr) => tr.cells[0].textContent.trim() == String(id));
+        if (tr) {
+          $('wFNama').value = tr.cells[2].textContent.trim();
+          $('wFKode').value = tr.cells[1].textContent.trim() === '-' ? '' : tr.cells[1].textContent.trim();
+        }
+      } else {
+        $('wFNama').value = '';
+        $('wFKode').value = '';
+        $('wFId').value = '';
+      }
+      $('wFormCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function wHideForm() {
+      $('wFormCard').style.display = 'none';
+      $('wEditId').value = '';
+    }
+
+    function wParentForSave() {
+      if (wLevel === 'kabupaten') return { col: 'provinsi_id', val: $('wFProv').value };
+      if (wLevel === 'kecamatan') return { col: 'kabupaten_id', val: $('wFKab').value };
+      if (wLevel === 'desa') return { col: 'kecamatan_id', val: $('wFKec').value };
+      return null;
+    }
+
+    async function wSave() {
+      const id = $('wEditId').value;
+      const nama = $('wFNama').value.trim();
+      if (!nama) { alert('Nama wajib diisi'); return; }
+      const body = { nama };
+      if (wLevel === 'provinsi') {
+        if (!id) {
+          const pid = parseInt($('wFId').value, 10);
+          if (!Number.isInteger(pid)) { alert('ID provinsi wajib angka (kode Kemendagri)'); return; }
+          body.id = pid;
+        }
+      } else {
+        if ($('wFKode').value.trim()) body.kode = $('wFKode').value.trim();
+        if (!id) {
+          const p = wParentForSave();
+          if (!p.val) { alert(`Pilih filter ${WLVL[wLevel].parentName} terlebih dahulu sebagai induk`); return; }
+          body[p.col] = p.val;
+        }
+      }
+      try {
+        await wFetchJSON(id ? `${WAPI}/${wLevel}/${id}` : `${WAPI}/${wLevel}`, {
+          method: id ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        wHideForm();
+        wLoadParents();
+        wLoad();
+      } catch (err) {
+        alert('Gagal menyimpan: ' + err.message);
+      }
+    }
+
+    async function wDel(id, nama) {
+      if (!confirm(`Hapus "${nama}" (ID ${id})?`)) return;
+      try {
+        await wFetchJSON(`${WAPI}/${wLevel}/${id}`, { method: 'DELETE' });
+        wLoad();
+      } catch (err) {
+        alert('Gagal menghapus: ' + err.message);
+      }
+    }
+
+    // ================= ADMIN KANDIDAT & KATEGORI =================
+    const KAPI = location.origin + '/api/kandidat';
+
+    async function kInit() {
+      if (!wToken()) {
+        $('kLoginCard').style.display = '';
+        $('kBody').style.display = 'none';
+        return;
+      }
+      try {
+        await wFetchJSON(`${location.origin}/api/auth/me`);
+        $('kLoginCard').style.display = 'none';
+        $('kBody').style.display = '';
+        kLoadAll();
+      } catch (err) {
+        localStorage.removeItem('c1_admin_token');
+        $('kLoginCard').style.display = '';
+        $('kBody').style.display = 'none';
+      }
+    }
+
+    async function kLoadAll() {
+      await kLoadKat();
+      await kLoadDapil();
+      await kLoadKand();
+    }
+
+    async function kLoadDapil() {
+      try {
+        const data = await wFetchJSON(`${location.origin}/api/dapil`);
+        const cur = $('kKDapil').value;
+        const groups = {};
+        data.data.forEach((r) => {
+          (groups[r.tingkat] = groups[r.tingkat] || []).push(r);
+        });
+        $('kKDapil').innerHTML = '<option value="">— Tanpa dapil —</option>' + Object.keys(groups).sort().map((t) =>
+          `<optgroup label="${wEsc(t)}">` + groups[t].map((r) =>
+            `<option value="${wEsc(r.id)}">${wEsc(r.kode)} — ${wEsc(r.nama)}</option>`).join('') + '</optgroup>'
+        ).join('');
+        if ([...$('kKDapil').options].some((o) => o.value === cur)) $('kKDapil').value = cur;
+      } catch (err) {
+        console.error('kLoadDapil gagal:', err.message);
+      }
+    }
+
+    async function kLoadKat() {
+      try {
+        const data = await wFetchJSON(`${KAPI}/kategori`);
+        $('kKatTotal').textContent = data.total + ' data';
+        $('kKatBody').innerHTML = data.data.map((r) => `
+          <tr>
+            <td><strong>${wEsc(r.id)}</strong></td>
+            <td>${wEsc(r.nama_pemilihan)}</td>
+            <td><span class="badge">${r.jml_kandidat}</span></td>
+            <td style="white-space: nowrap;">
+              <button class="btn btn-ghost" onclick="kEditKat('${wEsc(r.id)}', '${wEsc(r.nama_pemilihan).replace(/'/g, "\\'")}')">✏️</button>
+              <button class="btn btn-ghost" onclick="kDelKat('${wEsc(r.id)}')">🗑️</button>
+            </td>
+          </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);">Tidak ada data</td></tr>';
+        const curF = $('kFKat').value, curK = $('kKKat').value;
+        $('kFKat').innerHTML = '<option value="">— Semua —</option>' + data.data.map((r) =>
+          `<option value="${wEsc(r.id)}">${wEsc(r.id)} — ${wEsc(r.nama_pemilihan)}</option>`).join('');
+        $('kKKat').innerHTML = '<option value="">— Pilih —</option>' + data.data.map((r) =>
+          `<option value="${wEsc(r.id)}">${wEsc(r.id)}</option>`).join('');
+        if ([...$('kFKat').options].some((o) => o.value === curF)) $('kFKat').value = curF;
+        if ([...$('kKKat').options].some((o) => o.value === curK)) $('kKKat').value = curK;
+      } catch (err) {
+        $('kKatBody').innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--err);">${wEsc(err.message)}</td></tr>`;
+      }
+    }
+
+    function kEditKat(id, nama) {
+      $('kKatEditId').value = id;
+      $('kKatId').value = id;
+      $('kKatId').disabled = true;
+      $('kKatNama').value = nama;
+    }
+
+    function kCancelKat() {
+      $('kKatEditId').value = '';
+      $('kKatId').value = '';
+      $('kKatId').disabled = false;
+      $('kKatNama').value = '';
+    }
+
+    async function kSaveKat() {
+      const editId = $('kKatEditId').value;
+      const nama = $('kKatNama').value.trim();
+      if (!nama) { alert('Nama pemilihan wajib diisi'); return; }
+      try {
+        if (editId) {
+          await wFetchJSON(`${KAPI}/kategori/${encodeURIComponent(editId)}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nama_pemilihan: nama })
+          });
+        } else {
+          const id = $('kKatId').value.trim().toUpperCase();
+          if (!id) { alert('ID kategori wajib diisi'); return; }
+          await wFetchJSON(`${KAPI}/kategori`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, nama_pemilihan: nama })
+          });
+        }
+        kCancelKat();
+        kLoadAll();
+      } catch (err) {
+        alert('Gagal menyimpan: ' + err.message);
+      }
+    }
+
+    async function kDelKat(id) {
+      if (!confirm(`Hapus kategori "${id}"?`)) return;
+      try {
+        await wFetchJSON(`${KAPI}/kategori/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        kLoadAll();
+      } catch (err) {
+        alert('Gagal menghapus: ' + err.message);
+      }
+    }
+
+    async function kLoadKand() {
+      try {
+        const p = new URLSearchParams();
+        if ($('kFKat').value) p.set('kategori_pemilihan_id', $('kFKat').value);
+        if ($('kFTipe').value) p.set('tipe', $('kFTipe').value);
+        if ($('kFSearch').value.trim()) p.set('search', $('kFSearch').value.trim());
+        const data = await wFetchJSON(`${KAPI}/list?${p.toString()}`);
+        $('kKandTotal').textContent = data.total + ' data';
+        $('kKandBody').innerHTML = data.data.map((r) => `
+          <tr>
+            <td><strong>${wEsc(r.id)}</strong></td>
+            <td>${r.foto ? `<a href="${wEsc(r.foto)}" target="_blank"><img src="${wEsc(r.foto)}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" alt="" /></a>` : '<span style="color:var(--muted);">-</span>'}</td>
+            <td>${wEsc(r.nama)}</td>
+            <td>${wEsc(r.partai || '-')}</td>
+            <td><span class="badge">${wEsc(r.kategori_pemilihan_id)}</span></td>
+            <td>${r.dapil_kode ? `<span class="badge" style="background:#e0f2fe;color:#0369a1;">${wEsc(r.dapil_kode)}</span>` : '<span style="color:var(--muted);">-</span>'}</td>
+            <td>${wEsc(r.tipe_kandidat)}</td>
+            <td>${r.no_urut}</td>
+            <td style="white-space: nowrap;">
+              <button class="btn btn-ghost" onclick="kEditKand('${wEsc(r.id)}')">✏️</button>
+              <button class="btn btn-ghost" onclick="kDelKand('${wEsc(r.id)}')">🗑️</button>
+            </td>
+          </tr>`).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--muted);">Tidak ada data</td></tr>';
+      } catch (err) {
+        $('kKandBody').innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--err);">${wEsc(err.message)}</td></tr>`;
+      }
+    }
+
+    function kFotoChange() {
+      const f = $('kKFoto').files[0];
+      $('kFotoStat').textContent = f ? `${f.name} (${(f.size / 1024).toFixed(1)} KB) — akan diunggah saat Simpan` : 'Belum pilih foto (opsional)';
+      if (f) {
+        $('kFotoPrev').src = URL.createObjectURL(f);
+        $('kFotoPrev').style.display = '';
+      } else if (!$('kKFotoUrl').value) {
+        $('kFotoPrev').style.display = 'none';
+      }
+    }
+
+    function kFotoClear() {
+      $('kKFoto').value = '';
+      $('kKFotoUrl').value = '';
+      $('kFotoPrev').style.display = 'none';
+      $('kFotoStat').textContent = 'Foto dihapus (tersimpan saat Simpan)';
+    }
+
+    async function kCompressImage(file, maxDim = 1280, quality = 0.82) {
+      // Kompresi di browser via canvas: max 1280px sisi panjang, output JPEG.
+      // Server Node.js tetap tidak menerima byte gambar (aturan arsitektur).
+      const bmp = await createImageBitmap(file);
+      try {
+        const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+        const w = Math.max(1, Math.round(bmp.width * scale));
+        const h = Math.max(1, Math.round(bmp.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+        const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', quality));
+        return blob || file;
+      } finally {
+        bmp.close();
+      }
+    }
+
+    async function kUploadFoto() {
+      const f = $('kKFoto').files[0];
+      if (!f) return $('kKFotoUrl').value || null;
+      const origKB = (f.size / 1024).toFixed(1);
+      let blob = f, mime = f.type || 'image/jpeg', fname = f.name;
+      try {
+        blob = await kCompressImage(f);
+        mime = 'image/jpeg';
+        fname = f.name.replace(/\.[a-z0-9]+$/i, '') + '.jpg';
+      } catch (e) {
+        console.warn('kompresi gagal, unggah original:', e.message);
+      }
+      $('kFotoStat').textContent = `Mengompresi & mengunggah (${origKB} KB → ${(blob.size / 1024).toFixed(1)} KB)...`;
+      const upRes = await fetch(`${location.origin}/api/c1/upload-request?filename=${encodeURIComponent(fname)}&content_type=${encodeURIComponent(mime)}`);
+      const up = await upRes.json();
+      if (!up.success) throw new Error(up.error || 'gagal minta upload URL');
+      const put = await fetch(up.upload_url, { method: 'PUT', headers: { 'Content-Type': mime }, body: blob });
+      if (!put.ok) throw new Error(`upload foto gagal (HTTP ${put.status})`);
+      $('kKFotoUrl').value = up.image_url;
+      $('kFotoStat').textContent = `Foto terkompresi & terunggah ✓ (${origKB} KB → ${(blob.size / 1024).toFixed(1)} KB)`;
+      return up.image_url;
+    }
+
+    async function kEditKand(id) {
+      try {
+        const data = await wFetchJSON(`${KAPI}/list?search=${encodeURIComponent(id)}`);
+        const r = data.data.find((x) => x.id === id) || data.data[0];
+        if (!r) { alert('Data tidak ditemukan'); return; }
+        $('kKEditId').value = r.id;
+        $('kKId').value = r.id;
+        $('kKId').disabled = true;
+        $('kKKat').value = r.kategori_pemilihan_id;
+        $('kKTipe').value = r.tipe_kandidat;
+        $('kKNo').value = r.no_urut;
+        $('kKNama').value = r.nama;
+        $('kKDapil').value = r.dapil_id || '';
+        $('kKPartai').value = r.partai || '';
+        $('kKFotoUrl').value = r.foto || '';
+        $('kKFoto').value = '';
+        if (r.foto) {
+          $('kFotoPrev').src = r.foto;
+          $('kFotoPrev').style.display = '';
+          $('kFotoStat').textContent = 'Foto tersimpan (pilih file baru untuk mengganti)';
+        } else {
+          $('kFotoPrev').style.display = 'none';
+          $('kFotoStat').textContent = 'Belum pilih foto (opsional)';
+        }
+      } catch (err) {
+        alert('Gagal memuat: ' + err.message);
+      }
+    }
+
+    function kCancelKand() {
+      $('kKEditId').value = '';
+      $('kKId').value = '';
+      $('kKId').disabled = false;
+      $('kKNama').value = '';
+      $('kKNo').value = 1;
+      $('kKDapil').value = '';
+      $('kKPartai').value = '';
+      $('kKFoto').value = '';
+      $('kKFotoUrl').value = '';
+      $('kFotoPrev').style.display = 'none';
+      $('kFotoStat').textContent = 'Belum pilih foto (opsional)';
+    }
+
+    async function kSaveKand() {
+      const editId = $('kKEditId').value;
+      const body = {
+        nama: $('kKNama').value.trim(),
+        tipe_kandidat: $('kKTipe').value,
+        no_urut: parseInt($('kKNo').value, 10) || 0,
+        kategori_pemilihan_id: $('kKKat').value,
+        dapil_id: $('kKDapil').value || null
+      };
+      if (!editId) {
+        body.id = $('kKId').value.trim().toUpperCase();
+        if (!body.id) { alert('ID kandidat wajib diisi'); return; }
+        if (!body.kategori_pemilihan_id) { alert('Kategori wajib dipilih'); return; }
+      }
+      if (!body.nama) { alert('Nama wajib diisi'); return; }
+      try {
+        body.foto = await kUploadFoto();
+        const partai = $('kKPartai').value.trim();
+        if (partai) body.partai = partai;
+        await wFetchJSON(editId ? `${KAPI}/list/${encodeURIComponent(editId)}` : `${KAPI}/list`, {
+          method: editId ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        kCancelKand();
+        kLoadKand();
+      } catch (err) {
+        alert('Gagal menyimpan: ' + err.message);
+      }
+    }
+
+    async function kDelKand(id) {
+      if (!confirm(`Hapus kandidat "${id}"?`)) return;
+      try {
+        await wFetchJSON(`${KAPI}/list/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        kLoadKand();
+      } catch (err) {
+        alert('Gagal menghapus: ' + err.message);
+      }
+    }
+
+    // ================= ADMIN DAPIL & TPS =================
+    const DAPI = location.origin + '/api/dapil';
+    const TAPI = location.origin + '/api/tps';
+    let dCur = null;
+    let tOffset = 0;
+    const T_LIMIT = 15;
+
+    async function dInit() {
+      if (!wToken()) {
+        $('dLoginCard').style.display = '';
+        $('dBody').style.display = 'none';
+        return;
+      }
+      try {
+        await wFetchJSON(`${location.origin}/api/auth/me`);
+        $('dLoginCard').style.display = 'none';
+        $('dBody').style.display = '';
+        const kb = await wFetchJSON(`${WAPI}/kabupaten?provinsi_id=18`);
+        const cur = $('dFKab').value;
+        $('dFKab').innerHTML = '<option value="">— Pilih —</option>' + kb.data.map((r) =>
+          `<option value="${r.id}">${wEsc(r.nama)}</option>`).join('');
+        if ([...$('dFKab').options].some((o) => o.value === cur)) $('dFKab').value = cur;
+        const tk = await wFetchJSON(`${WAPI}/kabupaten?provinsi_id=18`);
+        const tcur = $('tFKab').value;
+        $('tFKab').innerHTML = '<option value="">— Semua —</option>' + tk.data.map((r) =>
+          `<option value="${r.id}">${wEsc(r.nama)}</option>`).join('');
+        if ([...$('tFKab').options].some((o) => o.value === tcur)) $('tFKab').value = tcur;
+        dLoad();
+        tLoad(0);
+      } catch (err) {
+        localStorage.removeItem('c1_admin_token');
+        $('dLoginCard').style.display = '';
+        $('dBody').style.display = 'none';
+      }
+    }
+
+    function dTipeChange() {
+      $('dFKabWrap').style.display = $('dFTipe').value === 'DPRD_KABKOTA' ? '' : 'none';
+    }
+
+    async function dLoad() {
+      try {
+        const p = new URLSearchParams();
+        if ($('dFTingkat').value) p.set('tingkat', $('dFTingkat').value);
+        if ($('dFSearch').value.trim()) p.set('search', $('dFSearch').value.trim());
+        const data = await wFetchJSON(`${DAPI}?${p.toString()}`);
+        $('dTotal').textContent = data.total + ' data';
+        $('dDapilBody').innerHTML = data.data.map((r) => `
+          <tr>
+            <td><strong>${wEsc(r.kode)}</strong><br><small style="color:var(--muted);">${wEsc(r.id)}</small></td>
+            <td>${wEsc(r.nama)}</td>
+            <td><span class="badge">${wEsc(r.tingkat)}</span></td>
+            <td>${wEsc(r.kabupaten_nama || '-')}</td>
+            <td>${r.jml_kursi}</td>
+            <td><span class="badge">${r.jml_anggota}</span></td>
+            <td style="white-space: nowrap;">
+              <button class="btn btn-ghost" onclick="dAnggota('${wEsc(r.id)}')">👥</button>
+              <button class="btn btn-ghost" onclick="dEdit('${wEsc(r.id)}')">✏️</button>
+              <button class="btn btn-ghost" onclick="dDel('${wEsc(r.id)}')">🗑️</button>
+            </td>
+          </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--muted);">Tidak ada data</td></tr>';
+      } catch (err) {
+        $('dDapilBody').innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--err);">${wEsc(err.message)}</td></tr>`;
+      }
+    }
+
+    async function dEdit(id) {
+      try {
+        const d = await wFetchJSON(`${DAPI}/${encodeURIComponent(id)}`);
+        const r = d.data;
+        $('dFEditId').value = r.id;
+        $('dFId').value = r.id;
+        $('dFId').disabled = true;
+        $('dFTipe').value = r.tingkat;
+        $('dFKode').value = r.kode;
+        $('dFNama').value = r.nama;
+        $('dFKursi').value = r.jml_kursi;
+        if (r.kabupaten_id) $('dFKab').value = r.kabupaten_id;
+        dTipeChange();
+      } catch (err) {
+        alert('Gagal memuat: ' + err.message);
+      }
+    }
+
+    function dCancel() {
+      $('dFEditId').value = '';
+      $('dFId').value = '';
+      $('dFId').disabled = false;
+      $('dFKode').value = '';
+      $('dFNama').value = '';
+      $('dFKursi').value = 3;
+    }
+
+    async function dSave() {
+      const editId = $('dFEditId').value;
+      try {
+        if (editId) {
+          await wFetchJSON(`${DAPI}/${encodeURIComponent(editId)}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              kode: $('dFKode').value.trim(),
+              nama: $('dFNama').value.trim(),
+              jml_kursi: parseInt($('dFKursi').value, 10) || 0
+            })
+          });
+        } else {
+          const body = {
+            id: $('dFId').value.trim().toUpperCase(),
+            tingkat: $('dFTipe').value,
+            kode: $('dFKode').value.trim(),
+            nama: $('dFNama').value.trim(),
+            jml_kursi: parseInt($('dFKursi').value, 10) || 0
+          };
+          if (!body.id) { alert('ID dapil wajib diisi'); return; }
+          if (body.tingkat === 'DPRD_KABKOTA') {
+            if (!$('dFKab').value) { alert('Kabupaten/Kota wajib dipilih'); return; }
+            body.kabupaten_id = $('dFKab').value;
+          }
+          await wFetchJSON(DAPI, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+        }
+        dCancel();
+        dLoad();
+      } catch (err) {
+        alert('Gagal menyimpan: ' + err.message);
+      }
+    }
+
+    async function dDel(id) {
+      if (!confirm(`Hapus dapil "${id}" beserta anggotanya?`)) return;
+      try {
+        await wFetchJSON(`${DAPI}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        $('dAnggotaCard').style.display = 'none';
+        dLoad();
+      } catch (err) {
+        alert('Gagal menghapus: ' + err.message);
+      }
+    }
+
+    async function dAnggota(id) {
+      try {
+        const d = await wFetchJSON(`${DAPI}/${encodeURIComponent(id)}`);
+        dCur = d.data;
+        $('dAnggotaTitle').textContent = `Anggota: ${dCur.nama} (${dCur.jml_kursi} kursi)`;
+        $('dAnggotaCard').style.display = '';
+        const isKec = dCur.tingkat === 'DPRD_KABKOTA';
+        const sel = $('dAnggotaAdd');
+        if (dCur.tingkat === 'DPD') {
+          sel.innerHTML = '<option value="">— DPD se-provinsi, tanpa anggota —</option>';
+        } else if (isKec) {
+          const r = await wFetchJSON(`${WAPI}/kecamatan?kabupaten_id=${dCur.kabupaten_id}`);
+          const ada = new Set(dCur.anggota.map((a) => String(a.id)));
+          sel.innerHTML = '<option value="">— Pilih kecamatan —</option>' + r.data
+            .filter((x) => !ada.has(String(x.id)))
+            .map((x) => `<option value="${x.id}">${wEsc(x.nama)}</option>`).join('');
+        } else {
+          const r = await wFetchJSON(`${WAPI}/kabupaten?provinsi_id=18`);
+          const ada = new Set(dCur.anggota.map((a) => String(a.id)));
+          sel.innerHTML = '<option value="">— Pilih kab/kota —</option>' + r.data
+            .filter((x) => !ada.has(String(x.id)))
+            .map((x) => `<option value="${x.id}">${wEsc(x.nama)}</option>`).join('');
+        }
+        $('dAnggotaBody').innerHTML = dCur.anggota.map((a) => `
+          <tr>
+            <td><strong>${a.id}</strong></td><td>${wEsc(a.kode || '-')}</td><td>${wEsc(a.nama)}</td>
+            <td><button class="btn btn-ghost" onclick="dDelAnggota(${a.id})">🗑️ Keluarkan</button></td>
+          </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);">Belum ada anggota</td></tr>';
+        $('dAnggotaCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (err) {
+        alert('Gagal memuat anggota: ' + err.message);
+      }
+    }
+
+    async function dAddAnggota() {
+      if (!dCur || !$('dAnggotaAdd').value) { alert('Pilih anggota dulu'); return; }
+      const body = dCur.tingkat === 'DPRD_KABKOTA'
+        ? { kecamatan_id: $('dAnggotaAdd').value }
+        : { kabupaten_id: $('dAnggotaAdd').value };
+      try {
+        await wFetchJSON(`${DAPI}/${encodeURIComponent(dCur.id)}/anggota`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        dAnggota(dCur.id);
+        dLoad();
+      } catch (err) {
+        alert('Gagal menambah: ' + err.message);
+      }
+    }
+
+    async function dDelAnggota(childId) {
+      if (!dCur || !confirm('Keluarkan anggota ini dari dapil?')) return;
+      try {
+        await wFetchJSON(`${DAPI}/${encodeURIComponent(dCur.id)}/anggota/${childId}`, { method: 'DELETE' });
+        dAnggota(dCur.id);
+        dLoad();
+      } catch (err) {
+        alert('Gagal: ' + err.message);
+      }
+    }
+
+    // ---------- TPS ----------
+    async function tKabChange() {
+      const k = $('tFKab').value;
+      $('tFKec').innerHTML = '<option value="">— Semua —</option>';
+      $('tFDesa').innerHTML = '<option value="">— Semua —</option>';
+      if (k) {
+        const r = await wFetchJSON(`${WAPI}/kecamatan?kabupaten_id=${encodeURIComponent(k)}`);
+        $('tFKec').innerHTML = '<option value="">— Semua —</option>' + r.data.map((x) =>
+          `<option value="${x.id}">${wEsc(x.nama)}</option>`).join('');
+      }
+      tLoad(0);
+    }
+
+    async function tKecChange() {
+      const k = $('tFKec').value;
+      $('tFDesa').innerHTML = '<option value="">— Semua —</option>';
+      if (k) {
+        const r = await wFetchJSON(`${WAPI}/desa?kecamatan_id=${encodeURIComponent(k)}`);
+        $('tFDesa').innerHTML = '<option value="">— Semua —</option>' + r.data.map((x) =>
+          `<option value="${x.id}">${wEsc(x.nama)}</option>`).join('');
+      }
+      tLoad(0);
+    }
+
+    async function tLoad(offset) {
+      tOffset = Math.max(0, offset);
+      try {
+        const p = new URLSearchParams({ limit: T_LIMIT, offset: tOffset });
+        if ($('tFDesa').value) p.set('desa_id', $('tFDesa').value);
+        else if ($('tFKec').value) p.set('kecamatan_id', $('tFKec').value);
+        else if ($('tFKab').value) p.set('kabupaten_id', $('tFKab').value);
+        if ($('tFSearch').value.trim()) p.set('search', $('tFSearch').value.trim());
+        const d = await wFetchJSON(`${TAPI}?${p.toString()}`);
+        $('tPageInfo').textContent = `Total ${d.total} · tampil ${d.total ? d.offset + 1 : 0}–${d.offset + d.data.length}`;
+        $('tTotal').textContent = d.total + ' data';
+        $('tBody').innerHTML = d.data.map((t) => `
+          <tr>
+            <td><strong>${wEsc(t.id)}</strong></td>
+            <td>${wEsc(t.desa_nama || t.kelurahan || '-')}</td>
+            <td>${wEsc(t.kecamatan_nama || t.kecamatan || '-')}</td>
+            <td>${wEsc(t.no_tps)}</td>
+            <td>${t.jumlah_pemilih}</td>
+            <td>${t.lat !== null && t.lng !== null ? `${Number(t.lat).toFixed(5)}, ${Number(t.lng).toFixed(5)}` : '<span style="color:var(--muted);">-</span>'}</td>
+            <td style="white-space: nowrap;">
+              <button class="btn btn-ghost" onclick="tEdit('${wEsc(t.id)}')">✏️</button>
+              <button class="btn btn-ghost" onclick="tDel('${wEsc(t.id)}')">🗑️</button>
+            </td>
+          </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--muted);">Tidak ada data</td></tr>';
+      } catch (err) {
+        $('tBody').innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--err);">${wEsc(err.message)}</td></tr>`;
+      }
+    }
+
+    // ---------- Peta TPS (Leaflet: OSM + Satelit Esri + label) ----------
+    let tMap = null, tMarker = null;
+    const LAMPUNG = [-4.95, 105.25];
+
+    function tMapToggle() {
+      const w = $('tpsMapWrap');
+      const show = w.style.display === 'none';
+      w.style.display = show ? '' : 'none';
+      if (show) {
+        if (typeof L === 'undefined') {
+          w.innerHTML = '<p style="color:var(--err);font-size:13px;">Peta butuh internet (CDN Leaflet) — isi lat/long manual.</p>';
+          return;
+        }
+        if (!tMap) tMapBuild();
+        else setTimeout(() => tMap.invalidateSize(), 100);
+        tMapSync();
+      }
+    }
+
+    function tMapBuild() {
+      tMap = L.map('tpsMap').setView(LAMPUNG, 8);
+      const jalan = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, attribution: '&copy; OpenStreetMap'
+      });
+      const satelit = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19, attribution: '&copy; Esri World Imagery'
+      });
+      const labelSatelit = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19
+      });
+      const satelitPlusLabel = L.layerGroup([satelit, labelSatelit]);
+      jalan.addTo(tMap);
+      const baseMaps = { '🗺️ Peta Jalan': jalan, '🛰️ Satelit': satelitPlusLabel };
+      const overlayMaps = {};
+      // Batas desa resmi BIG 1:10.000 (filter Lampung saja agar ringan).
+      // Sumber: geoservices.big.go.id — sama dengan shapefile 528MB di
+      // indonesia-geospasial.com, tapi live & resmi, tanpa download.
+      try {
+        if (typeof L.esri !== 'undefined') {
+          overlayMaps['🏘️ Batas Desa (BIG)'] = L.esri.dynamicMapLayer({
+            url: 'https://geoservices.big.go.id/rbi/rest/services/BATASWILAYAH/Administrasi_AR_KelDesa_10K/MapServer',
+            layers: [0],
+            layerDefs: { 0: "WADMPR='Lampung'" },
+            opacity: 0.65
+          }).addTo(tMap);
+        }
+      } catch (e) {
+        console.warn('layer BIG gagal dimuat:', e.message);
+      }
+      L.control.layers(baseMaps, overlayMaps).addTo(tMap);
+      tMarker = L.marker(LAMPUNG, { draggable: true }).addTo(tMap);
+      tMarker.on('dragend', () => tMapSet(tMarker.getLatLng().lat, tMarker.getLatLng().lng));
+      tMap.on('click', (e) => tMapSet(e.latlng.lat, e.latlng.lng));
+    }
+
+    function tMapSet(lat, lng) {
+      $('tFLat').value = Number(lat).toFixed(7);
+      $('tFLng').value = Number(lng).toFixed(7);
+      if (tMarker) tMarker.setLatLng([lat, lng]);
+    }
+
+    function tMapSync() {
+      if (!tMap) return;
+      const lat = parseFloat($('tFLat').value), lng = parseFloat($('tFLng').value);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        tMarker.setLatLng([lat, lng]);
+        tMap.setView([lat, lng], Math.max(tMap.getZoom(), 14));
+      }
+    }
+
+    async function tMapSearch() {
+      const q = $('tMapSearch').value.trim();
+      if (!q || !tMap) return;
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=id&viewbox=103.5,-3.5,106.2,-6.2&bounded=1&q=${encodeURIComponent(q + ', Lampung')}`;
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const data = await res.json();
+        if (!data.length) { alert('Lokasi tidak ditemukan'); return; }
+        const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
+        tMap.setView([lat, lng], 15);
+        tMapSet(lat, lng);
+      } catch (err) {
+        alert('Pencarian gagal: ' + err.message);
+      }
+    }
+
+    function tMapGPS() {
+      if (!navigator.geolocation || !tMap) { alert('Geolocation tidak tersedia'); return; }
+      navigator.geolocation.getCurrentPosition(
+        (p) => { tMap.setView([p.coords.latitude, p.coords.longitude], 16); tMapSet(p.coords.latitude, p.coords.longitude); },
+        () => alert('Tidak bisa membaca lokasi perangkat'),
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    function tPage(delta) {
+      tLoad(tOffset + delta * T_LIMIT);
+    }
+
+    async function tEdit(id) {
+      try {
+        const d = await wFetchJSON(`${TAPI}?search=${encodeURIComponent(id)}&limit=5`);
+        const r = d.data.find((x) => x.id === id);
+        if (!r) { alert('Data tidak ditemukan'); return; }
+        $('tFEditId').value = r.id;
+        $('tFId').value = r.id;
+        $('tFId').disabled = true;
+        $('tFNo').value = r.no_tps;
+        $('tFJml').value = r.jumlah_pemilih;
+        $('tFLat').value = r.lat ?? '';
+        $('tFLng').value = r.lng ?? '';
+        tMapSync();
+      } catch (err) {
+        alert('Gagal memuat: ' + err.message);
+      }
+    }
+
+    function tCancel() {
+      $('tFEditId').value = '';
+      $('tFId').value = '';
+      $('tFId').disabled = false;
+      $('tFNo').value = '';
+      $('tFJml').value = 0;
+      $('tFLat').value = '';
+      $('tFLng').value = '';
+      tMapSync();
+    }
+
+    async function tSave() {
+      const editId = $('tFEditId').value;
+      try {
+        if (editId) {
+          const body = {
+            no_tps: $('tFNo').value.trim(),
+            jumlah_pemilih: parseInt($('tFJml').value, 10) || 0,
+            lat: $('tFLat').value.trim() === '' ? null : Number($('tFLat').value),
+            lng: $('tFLng').value.trim() === '' ? null : Number($('tFLng').value)
+          };
+          if ($('tFDesa').value) body.desa_id = $('tFDesa').value;
+          await wFetchJSON(`${TAPI}/${encodeURIComponent(editId)}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+        } else {
+          const body = {
+            id: $('tFId').value.trim(),
+            no_tps: $('tFNo').value.trim(),
+            jumlah_pemilih: parseInt($('tFJml').value, 10) || 0,
+            lat: $('tFLat').value.trim() === '' ? null : Number($('tFLat').value),
+            lng: $('tFLng').value.trim() === '' ? null : Number($('tFLng').value)
+          };
+          if (!body.id) { alert('ID TPS wajib diisi'); return; }
+          if ($('tFDesa').value) body.desa_id = $('tFDesa').value;
+          else if (!confirm('Tanpa desa induk? Teks wilayah kosong. Lanjut?')) return;
+          await wFetchJSON(TAPI, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+        }
+        tCancel();
+        tLoad(tOffset);
+      } catch (err) {
+        alert('Gagal menyimpan: ' + err.message);
+      }
+    }
+
+    async function tDel(id) {
+      if (!confirm(`Hapus TPS "${id}"?`)) return;
+      try {
+        await wFetchJSON(`${TAPI}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        tLoad(tOffset);
+      } catch (err) {
+        alert('Gagal menghapus: ' + err.message);
+      }
+    }
+
+    // ================= REGISTRASI SAKSI =================
+    const SAPI = location.origin + '/api/saksi';
+    let sOffset = 0;
+    const S_LIMIT = 15;
+
+    async function sInit() {
+      if (!wToken()) {
+        $('sLoginCard').style.display = '';
+        $('sBody').style.display = 'none';
+        return;
+      }
+      try {
+        await wFetchJSON(`${location.origin}/api/auth/me`);
+        $('sLoginCard').style.display = 'none';
+        $('sBody').style.display = '';
+        const kb = await wFetchJSON(`${WAPI}/kabupaten?provinsi_id=18`);
+        const cur = $('sFKab').value;
+        $('sFKab').innerHTML = '<option value="">— Pilih —</option>' + kb.data.map((r) =>
+          `<option value="${r.id}">${wEsc(r.nama)}</option>`).join('');
+        if ([...$('sFKab').options].some((o) => o.value === cur)) $('sFKab').value = cur;
+        sFillKandidat();
+        sStat();
+        sLoad(0);
+      } catch (err) {
+        localStorage.removeItem('c1_admin_token');
+        $('sLoginCard').style.display = '';
+        $('sBody').style.display = 'none';
+      }
+    }
+
+    async function sFillKandidat() {
+      try {
+        const d = await wFetchJSON(`${KAPI}/list?limit=500`);
+        const cur = $('sFKandidat').value;
+        $('sFKandidat').innerHTML = '<option value="">— Tanpa penugasan khusus —</option>' + d.data.map((x) =>
+          `<option value="${wEsc(x.id)}">${wEsc(x.id)} — ${wEsc(x.nama)}${x.partai ? ' (' + wEsc(x.partai) + ')' : ''}</option>`).join('');
+        if ([...$('sFKandidat').options].some((o) => o.value === cur)) $('sFKandidat').value = cur;
+      } catch (err) {
+        console.error('sFillKandidat gagal:', err.message);
+      }
+    }
+
+    async function sStat() {
+      try {
+        const d = await wFetchJSON(`${SAPI}/stat`);
+        $('sTotalCard').textContent = Number(d.data.total).toLocaleString('id-ID');
+        $('sTpsCard').textContent = Number(d.data.tps_terisi).toLocaleString('id-ID');
+      } catch (err) {
+        console.error('sStat gagal:', err.message);
+      }
+    }
+
+    async function sKabChange() {
+      const k = $('sFKab').value;
+      $('sFKec').innerHTML = '<option value="">— Pilih —</option>';
+      $('sFDesa').innerHTML = '<option value="">— Pilih —</option>';
+      $('sFTps').innerHTML = '<option value="">— Pilih desa dulu —</option>';
+      if (k) {
+        const r = await wFetchJSON(`${WAPI}/kecamatan?kabupaten_id=${encodeURIComponent(k)}`);
+        $('sFKec').innerHTML = '<option value="">— Pilih —</option>' + r.data.map((x) =>
+          `<option value="${x.id}">${wEsc(x.nama)}</option>`).join('');
+      }
+    }
+
+    async function sKecChange() {
+      const k = $('sFKec').value;
+      $('sFDesa').innerHTML = '<option value="">— Pilih —</option>';
+      $('sFTps').innerHTML = '<option value="">— Pilih desa dulu —</option>';
+      if (k) {
+        const r = await wFetchJSON(`${WAPI}/desa?kecamatan_id=${encodeURIComponent(k)}`);
+        $('sFDesa').innerHTML = '<option value="">— Pilih —</option>' + r.data.map((x) =>
+          `<option value="${x.id}">${wEsc(x.nama)}</option>`).join('');
+      }
+    }
+
+    async function sDesaChange() {
+      const d = $('sFDesa').value;
+      $('sFTps').innerHTML = '<option value="">— Pilih desa dulu —</option>';
+      if (d) {
+        const r = await wFetchJSON(`${TAPI}?desa_id=${encodeURIComponent(d)}&limit=200`);
+        $('sFTps').innerHTML = '<option value="">— Pilih TPS —</option>' + r.data.map((x) =>
+          `<option value="${wEsc(x.id)}">TPS ${wEsc(x.no_tps)} (${wEsc(x.id)})</option>`).join('');
+      }
+    }
+
+    async function sLoad(offset) {
+      sOffset = Math.max(0, offset);
+      try {
+        const p = new URLSearchParams({ limit: S_LIMIT, offset: sOffset });
+        if ($('sFSearch').value.trim()) p.set('search', $('sFSearch').value.trim());
+        const d = await wFetchJSON(`${SAPI}?${p.toString()}`);
+        $('sPageInfo').textContent = `Total ${d.total} · tampil ${d.total ? d.offset + 1 : 0}–${d.offset + d.data.length}`;
+        $('sTotal').textContent = d.total + ' data';
+        $('sSaksiBody').innerHTML = d.data.map((s) => `
+          <tr>
+            <td><strong>${s.id}</strong></td>
+            <td>${wEsc(s.nama)}</td>
+            <td>${wEsc(s.nik)}</td>
+            <td><span class="badge">${wEsc(s.username || '-')}</span></td>
+            <td>${wEsc(s.no_hp || '-')}</td>
+            <td><span class="badge">${wEsc(s.tps_id)}</span></td>
+            <td>${wEsc(s.desa || '-')}${s.kecamatan ? ' / ' + wEsc(s.kecamatan) : ''}</td>
+            <td>${s.kandidat_id ? `<span class="badge" style="background:#e0f2fe;color:#0369a1;">${wEsc(s.kandidat_id)}</span><br><small style="color:var(--muted);">${wEsc(s.kandidat_nama || '')}</small>` : '<span style="color:var(--muted);">-</span>'}</td>
+            <td style="white-space: nowrap;">
+              <button class="btn btn-ghost" onclick="sEdit(${s.id})">✏️</button>
+              <button class="btn btn-ghost" onclick="sResetWa(${s.id})">💬 WA</button>
+              <button class="btn btn-ghost" onclick="sDel(${s.id}, '${wEsc(s.nama).replace(/'/g, "\\'")}')">🗑️</button>
+            </td>
+          </tr>`).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--muted);">Belum ada saksi</td></tr>';
+      } catch (err) {
+        $('sSaksiBody').innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--err);">${wEsc(err.message)}</td></tr>`;
+      }
+    }
+
+    function sPage(delta) {
+      sLoad(sOffset + delta * S_LIMIT);
+    }
+
+    function sHp62(no) {
+      const d = String(no || '').replace(/\D/g, '');
+      if (d.startsWith('08')) return '62' + d.slice(1);
+      if (d.startsWith('628')) return d;
+      return d;
+    }
+
+    function sShowCred(username, password, noHp) {
+      $('sCredUser').textContent = username || '-';
+      $('sCredPass').textContent = password;
+      const msg = `Halo, akun Saksi TPS Anda sudah dibuat.\n\nUsername: ${username}\nPassword: ${password}\n\nLogin di: ${location.origin}\n\nJaga kerahasiaan akun ini. Terima kasih.`;
+      $('sCredWa').href = `https://wa.me/${sHp62(noHp)}?text=${encodeURIComponent(msg)}`;
+      $('sCredBox').style.display = '';
+      $('sCredBox').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function sResetWa(id) {
+      const tr = [...$('sSaksiBody').rows].find((tr) => tr.cells[0].textContent.trim() == String(id));
+      if (!tr) { alert('Data tidak ada di halaman ini'); return; }
+      const nama = tr.cells[1].textContent.trim();
+      const hp = tr.cells[4].textContent.trim();
+      if (!confirm(`Reset password "${nama}" dan kirim via WA?`)) return;
+      try {
+        const d = await wFetchJSON(`${SAPI}/${id}/reset-password`, { method: 'POST' });
+        sShowCred(d.data.username, d.data.password, hp === '-' ? '' : hp);
+      } catch (err) {
+        alert('Gagal reset: ' + err.message);
+      }
+    }
+
+    async function sEdit(id) {
+      const tr = [...$('sSaksiBody').rows].find((tr) => tr.cells[0].textContent.trim() == String(id));
+      if (!tr) { alert('Data tidak ada di halaman ini'); return; }
+      $('sFEditId').value = id;
+      $('sFNama').value = tr.cells[1].textContent.trim();
+      $('sFNik').value = tr.cells[2].textContent.trim();
+      const uname = tr.cells[3].textContent.trim();
+      $('sFUser').value = uname === '-' ? '' : uname;
+      const hp = tr.cells[4].textContent.trim();
+      $('sFHp').value = hp === '-' ? '' : hp;
+      const tpsId = tr.cells[5].textContent.trim();
+      const kandBadge = tr.cells[7].querySelector('.badge');
+      $('sFKandidat').value = kandBadge ? kandBadge.textContent.trim() : '';
+      // Preload TPS lama ke dropdown berjenjang (tak perlu pilih ulang bila tak diganti)
+      try {
+        const t = await wFetchJSON(`${TAPI}/${encodeURIComponent(tpsId)}`);
+        const d = t.data;
+        if (d.kabupaten_id) {
+          $('sFKab').value = d.kabupaten_id;
+          await sKabChange();
+          if (d.kecamatan_id) {
+            $('sFKec').value = d.kecamatan_id;
+            await sKecChange();
+            if (d.desa_id) {
+              $('sFDesa').value = d.desa_id;
+              await sDesaChange();
+              $('sFTps').value = tpsId;
+            }
+          }
+        }
+      } catch (err) {
+        console.error('preload TPS gagal:', err.message);
+      }
+    }
+
+    function sCancel() {
+      $('sFEditId').value = '';
+      $('sFNama').value = '';
+      $('sFNik').value = '';
+      $('sFUser').value = '';
+      $('sFHp').value = '';
+      $('sFKet').value = '';
+      $('sFKandidat').value = '';
+    }
+
+    async function sSave() {
+      const editId = $('sFEditId').value;
+      const nama = $('sFNama').value.trim();
+      const nik = $('sFNik').value.trim();
+      const hp = $('sFHp').value.trim();
+      if (!nama) { alert('Nama wajib diisi'); return; }
+      if (!/^[0-9]{16}$/.test(nik)) { alert('NIK wajib 16 digit angka'); return; }
+      if (!hp) { alert('No. HP wajib diisi (untuk kirim WA)'); return; }
+      try {
+        if (editId) {
+          const body = { nama, nik, no_hp: hp, kandidat_id: $('sFKandidat').value || null };
+          if ($('sFUser').value.trim()) body.username = $('sFUser').value.trim();
+          if ($('sFTps').value) body.tps_id = $('sFTps').value;
+          await wFetchJSON(`${SAPI}/${editId}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          sCancel();
+          sStat();
+          sLoad(sOffset);
+        } else {
+          if (!$('sFTps').value) { alert('Pilih TPS (kab → kec → desa → TPS)'); return; }
+          const d = await wFetchJSON(SAPI, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nama, nik, no_hp: hp,
+              tps_id: $('sFTps').value,
+              kandidat_id: $('sFKandidat').value || null,
+              username: $('sFUser').value.trim() || null,
+              keterangan: $('sFKet').value.trim() || null
+            })
+          });
+          sCancel();
+          sStat();
+          sLoad(sOffset);
+          sShowCred(d.data.username, d.data.password, d.data.no_hp);
+        }
+      } catch (err) {
+        alert('Gagal menyimpan: ' + err.message);
+      }
+    }
+
+    async function sDel(id, nama) {
+      if (!confirm(`Hapus saksi "${nama}"?`)) return;
+      try {
+        await wFetchJSON(`${SAPI}/${id}`, { method: 'DELETE' });
+        sStat();
+        sLoad(sOffset);
+      } catch (err) {
+        alert('Gagal menghapus: ' + err.message);
+      }
+    }
+
+    // ================= DASHBOARD ADMIN =================
+    const AAPI = location.origin + '/api/admin';
+    let aOffset = 0;
+    const A_LIMIT = 15;
+
+    async function aInit() {
+      if (!wToken()) {
+        $('aLoginCard').style.display = '';
+        $('aBody').style.display = 'none';
+        return;
+      }
+      try {
+        await wFetchJSON(`${location.origin}/api/auth/me`);
+        $('aLoginCard').style.display = 'none';
+        $('aBody').style.display = '';
+        const kat = await wFetchJSON(`${KAPI}/kategori`);
+        const cur = $('aFKat').value;
+        $('aFKat').innerHTML = '<option value="">— Semua kategori —</option>' + kat.data.map((r) =>
+          `<option value="${wEsc(r.id)}">${wEsc(r.id)}</option>`).join('');
+        if ([...$('aFKat').options].some((o) => o.value === cur)) $('aFKat').value = cur;
+        aLoad();
+        aTrx(0);
+      } catch (err) {
+        localStorage.removeItem('c1_admin_token');
+        $('aLoginCard').style.display = '';
+        $('aBody').style.display = 'none';
+      }
+    }
+
+    const fmtID = (n) => Number(n || 0).toLocaleString('id-ID');
+
+    async function aLoad() {
+      try {
+        const d = await wFetchJSON(`${AAPI}/overview`);
+        $('aTPS').textContent = fmtID(d.summary.tps_masuk);
+        $('aTx').textContent = fmtID(d.summary.total_transaksi);
+        $('aSah').textContent = fmtID(d.summary.total_suara_sah);
+        $('aTidak').textContent = fmtID(d.summary.total_suara_tidak_sah);
+        $('aBacklog').textContent = fmtID(d.antrean.backlog);
+        $('aFail').textContent = fmtID(d.antrean.failed);
+        $('aFail').style.color = d.antrean.failed > 0 ? 'var(--err)' : '';
+        const q = d.antrean;
+        $('aQueue').innerHTML =
+          `<span>Queue <strong>c1-queue</strong>:</span><span>waiting <strong>${fmtID(q.waiting)}</strong></span>` +
+          `<span>active <strong>${fmtID(q.active)}</strong></span><span>completed <strong>${fmtID(q.completed)}</strong></span>` +
+          `<span>failed <strong>${fmtID(q.failed)}</strong></span><span>delayed <strong>${fmtID(q.delayed)}</strong></span>` +
+          (q.error ? `<span style="color:var(--err);">queue error: ${wEsc(q.error)}</span>` : '');
+        const m = d.master;
+        $('aMaster').innerHTML =
+          `<span>Master:</span><span>kategori <strong>${m.kategori}</strong></span><span>kandidat <strong>${m.kandidat}</strong></span>` +
+          `<span>tps <strong>${m.tps_master}</strong></span><span>prov <strong>${m.provinsi}</strong></span>` +
+          `<span>kab <strong>${m.kabupaten}</strong></span><span>kec <strong>${m.kecamatan}</strong></span>` +
+          `<span>desa <strong>${fmtID(m.desa)}</strong></span><span>admin <strong>${m.admin_users}</strong></span>` +
+          `<span>sesi aktif <strong>${m.sesi_aktif}</strong></span>`;
+        $('aKatBody').innerHTML = d.per_kategori.map((r) => `
+          <tr>
+            <td><span class="badge">${wEsc(r.kategori_pemilihan_id)}</span><br><small style="color:var(--muted);">${wEsc(r.nama_pemilihan)}</small></td>
+            <td>${fmtID(r.tps_masuk)}</td><td>${fmtID(r.total_transaksi)}</td>
+            <td>${fmtID(r.suara_sah)}</td><td>${fmtID(r.suara_tidak_sah)}</td>
+          </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);">Belum ada data</td></tr>';
+      } catch (err) {
+        console.error('aLoad gagal:', err.message);
+      }
+    }
+
+    async function aTrx(offset) {
+      aOffset = Math.max(0, offset);
+      try {
+        const p = new URLSearchParams({ limit: A_LIMIT, offset: aOffset });
+        if ($('aFKat').value) p.set('kategori_pemilihan_id', $('aFKat').value);
+        if ($('aFTps').value.trim()) p.set('tps', $('aFTps').value.trim());
+        const d = await wFetchJSON(`${AAPI}/transaksi?${p.toString()}`);
+        $('aPageInfo').textContent = `Total ${fmtID(d.total)} · tampil ${d.offset + 1}–${d.offset + d.data.length}`;
+        const ocr = { 0: 'pending', 1: 'ok', 2: 'gagal' };
+        $('aTrxBody').innerHTML = d.data.map((t) => `
+          <tr>
+            <td>${new Date(t.created_at).toLocaleString('id-ID')}</td>
+            <td><strong>${wEsc(t.tps_id)}</strong></td>
+            <td><span class="badge">${wEsc(t.kategori_pemilihan_id)}</span></td>
+            <td>${fmtID(t.total_suara_sah)}</td><td>${fmtID(t.total_suara_tidak_sah)}</td>
+            <td>${t.jml_detail} kandidat</td><td>${ocr[t.status_ocr] ?? t.status_ocr}</td>
+            <td><a href="${wEsc(t.image_url)}" target="_blank">Lihat ↗</a></td>
+          </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--muted);">Tidak ada data</td></tr>';
+      } catch (err) {
+        $('aTrxBody').innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--err);">${wEsc(err.message)}</td></tr>`;
+      }
+    }
+
+    function aPage(delta) {
+      aTrx(aOffset + delta * A_LIMIT);
+    }
+
+    wRefreshAuthUI();
+  </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "tim-pemenangan",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistem Rekapitulasi Form C1 - Prototype Laragon (29.000 TPS)",
+  "scripts": {
+    "install:all": "npm --prefix api install && npm --prefix worker install",
+    "api": "npm --prefix api start",
+    "worker": "npm --prefix worker start",
+    "stress": "npx autocannon -c 100 -d 20 -m POST -H \"Content-Type: application/json\" -b \"{\\\"tps_id\\\":\\\"3273011001001\\\",\\\"kategori_pemilihan_id\\\":\\\"PILKADA_KOTA_BDG\\\",\\\"image_key\\\":\\\"c1.jpg\\\",\\\"suara_sah\\\":200,\\\"suara_tidak_sah\\\":5,\\\"detail_suara\\\":[{\\\"kandidat_id\\\":\\\"PASLON_1\\\",\\\"jumlah_suara\\\":120},{\\\"kandidat_id\\\":\\\"PASLON_2\\\",\\\"jumlah_suara\\\":80}]}\" http://localhost:3000/api/c1/submit",
+    "stress:native": "node stress-test.js",
+    "test:e2e": "node e2e-test.js",
+    "worker:ocr": "python worker/ocr_worker.py"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "tim-pemenangan-worker",
+  "version": "1.0.0",
+  "description": "Worker BullMQ - Batch Insert Form C1 ke MySQL",
+  "main": "worker-db.js",
+  "scripts": {
+    "start": "node worker-db.js"
+  },
+  "dependencies": {
+    "bullmq": "^5.12.0",
+    "dotenv": "^16.4.5",
+    "ioredis": "^5.4.1",
+    "mysql2": "^3.11.0"
+  }
+}
