@@ -1051,6 +1051,16 @@
             <span id="c1DptInfo" class="badge" style="background:#f0fdf4; border-color:#bbf7d0; color:#14532d; display:none;"></span>
           </div>
 
+          <div class="row2" style="grid-template-columns: 1fr 1fr 1fr 1fr; margin-top:10px;">
+            <div><label>Jumlah Surat Suara</label><input id="c1FSurat" type="number" min="0" max="1000" placeholder="total diterima" oninput="c1CalcSurat()" /></div>
+            <div><label>Surat Baik</label><input id="c1FSuratBaik" type="number" min="0" max="1000" placeholder="baik" oninput="c1CalcSurat()" /></div>
+            <div><label>Surat Rusak</label><input id="c1FSuratRusak" type="number" min="0" max="1000" placeholder="rusak" oninput="c1CalcSurat()" /></div>
+            <div><label>Surat Cadangan</label><input id="c1FSuratCad" type="number" min="0" max="1000" placeholder="cadangan" oninput="c1CalcSurat()" /></div>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+            <span id="c1SuratInfo" class="badge" style="background:#fff; border-color:var(--border);">Baik+Rusak+Cadangan ≤ Surat</span>
+          </div>
+
           <div style="margin-top:14px;">
             <label>Detail Suara per Kandidat <span style="font-weight:400; text-transform:none; color:var(--muted);">(otomatis sesuai kategori)</span></label>
             <div id="c1DetailBox" style="display:grid; gap:8px; margin-top:8px; max-height:320px; overflow:auto; padding:2px;">
@@ -1063,12 +1073,14 @@
           </div>
 
           <div style="margin-top:14px;">
-            <label>Upload Form C1 * <span style="font-weight:400; text-transform:none; color:var(--muted);">(foto plano, auto compress)</span></label>
-            <input id="c1FFoto" type="file" accept="image/*" onchange="c1FotoChange()" />
-            <div class="k-foto-statline"><span id="c1FotoStat">Belum pilih foto C1</span></div>
-            <img id="c1FotoPrev" style="display:none; max-width:100%; border-radius:12px; margin-top:8px; border:1px solid var(--border); box-shadow:var(--shadow-sm); cursor:pointer; max-height:320px; object-fit:contain; background:#fff;" alt="preview C1" onclick="if(this.src) sOpenKtp(this.src,'Form C1')" />
+            <label>Upload Form C1 * <span style="font-weight:400; text-transform:none; color:var(--muted);">(foto plano, auto compress — bisa 1-5 foto)</span></label>
+            <input id="c1FFoto" type="file" accept="image/*" multiple onchange="c1FotoChange()" />
+            <div class="k-foto-statline"><span id="c1FotoStat">Belum pilih foto C1 — bisa pilih 1-5 foto</span></div>
+            <div id="c1FotoGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:8px; margin-top:8px;"></div>
+            <img id="c1FotoPrev" style="display:none;" alt="" />
             <input type="hidden" id="c1FotoUrl" value="" />
             <input type="hidden" id="c1ImageKey" value="" />
+            <input type="hidden" id="c1ImageKeys" value="" />
           </div>
 
           <div style="display:flex; gap:10px; margin-top:16px;">
@@ -1089,7 +1101,7 @@
           </div>
           <div style="overflow-x:auto;">
             <table class="audit-table">
-              <thead><tr><th>Waktu</th><th>TPS</th><th>Kategori</th><th>DPT</th><th>Hadir</th><th>Sah</th><th>Batal</th><th>C1</th><th>Status</th></tr></thead>
+              <thead><tr><th>Waktu</th><th>TPS</th><th>Kategori</th><th>DPT</th><th>Hadir</th><th>Sah</th><th>Batal</th><th>Surat</th><th>C1</th><th>Status</th></tr></thead>
               <tbody id="c1BodyRows"></tbody>
             </table>
           </div>
@@ -3567,46 +3579,94 @@
         else { dptInfo.textContent=`✅ Hadir ${hadir} ≤ DPT ${dpt} • Golput ${dpt-hadir}`; dptInfo.style.display=''; dptInfo.style.background='#f0fdf4'; }
       } else dptInfo.style.display='none';
     }
+    function c1CalcSurat(){
+      const tot=parseInt($('c1FSurat').value,10), baik=parseInt($('c1FSuratBaik').value,10), rusak=parseInt($('c1FSuratRusak').value,10), cad=parseInt($('c1FSuratCad').value,10);
+      const el=$('c1SuratInfo');
+      if(isNaN(tot) && isNaN(baik) && isNaN(rusak) && isNaN(cad)){ el.textContent='Baik+Rusak+Cadangan ≤ Surat'; el.style.background='#fff'; return; }
+      const sum = (isNaN(baik)?0:baik)+(isNaN(rusak)?0:rusak)+(isNaN(cad)?0:cad);
+      if(!isNaN(tot)){
+        if(sum > tot){ el.textContent=`⚠️ Baik ${isNaN(baik)?0:baik}+Rusak ${isNaN(rusak)?0:rusak}+Cad ${isNaN(cad)?0:cad}=${sum} > Surat ${tot}`; el.style.background='#fee2e2'; el.style.borderColor='#fecaca'; el.style.color='#991b1b'; }
+        else if(sum===tot && tot!==0) { el.textContent=`✅ Baik+Rusak+Cadangan ${sum} = Surat ${tot}`; el.style.background='#f0fdf4'; el.style.borderColor='#bbf7d0'; el.style.color='#14532d'; }
+        else { el.textContent=`Baik+Rusak+Cad ${sum} ≤ Surat ${tot} • Sisa ${tot-sum}`; el.style.background='#f8fafc'; }
+      } else {
+        el.textContent=`Baik+Rusak+Cad = ${sum} (isi Surat untuk validasi)`;
+        el.style.background='#fff';
+      }
+    }
     function c1FotoChange(){
-      const f=$('c1FFoto').files[0];
-      $('c1FotoStat').textContent=f? `${f.name} (${(f.size/1024).toFixed(1)}KB) — akan dikompres` : 'Belum pilih foto C1';
-      if(f){ $('c1FotoPrev').src=URL.createObjectURL(f); $('c1FotoPrev').style.display=''; } else if(!$('c1FotoUrl').value) $('c1FotoPrev').style.display='none';
+      const files=$('c1FFoto').files;
+      const grid=$('c1FotoGrid');
+      if(!files.length){
+        $('c1FotoStat').textContent='Belum pilih foto C1 — bisa pilih 1-5 foto';
+        if(grid) grid.innerHTML='';
+        if(!$('c1FotoUrl').value) $('c1FotoPrev').style.display='none';
+        return;
+      }
+      if(files.length>5){ alert('Maksimal 5 foto C1'); $('c1FFoto').value=''; if(grid) grid.innerHTML=''; return; }
+      $('c1FotoStat').textContent=`${files.length} foto dipilih — akan dikompres & upload multi`;
+      if(grid){
+        grid.innerHTML=[...files].map(f=>`<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff;"><img src="${URL.createObjectURL(f)}" style="width:100%;height:90px;object-fit:cover;" /><div style="font-size:10px;padding:4px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#f8fafc;">${wEsc(f.name)} ${(f.size/1024).toFixed(0)}KB</div></div>`).join('');
+      }
+      $('c1FotoPrev').style.display='none';
     }
     async function c1Upload(){
-      const f=$('c1FFoto').files[0];
-      if(!f) return { key: $('c1ImageKey').value||null, url: $('c1FotoUrl').value||null };
-      let blob=f, mime=f.type||'image/jpeg', fname=f.name;
-      try{ blob=await kCompressImage(f); mime='image/jpeg'; fname=f.name.replace(/\.[a-z0-9]+$/i,'')+'.jpg'; }catch(e){}
-      $('c1FotoStat').textContent='Mengompres & mengunggah C1...';
-      const upRes=await fetch(`${location.origin}/api/c1/upload-request?filename=${encodeURIComponent(fname)}&content_type=${encodeURIComponent(mime)}`);
-      const up=await upRes.json(); if(!up.success) throw new Error(up.error||'gagal minta upload');
-      const put=await fetch(up.upload_url,{method:'PUT',headers:{'Content-Type':mime},body:blob});
-      if(!put.ok) throw new Error(`upload C1 gagal ${put.status}`);
-      $('c1FotoUrl').value=up.image_url; $('c1ImageKey').value=up.image_key;
-      $('c1FotoStat').textContent='C1 terunggah ✓';
-      return { key: up.image_key, url: up.image_url };
+      const files=$('c1FFoto').files;
+      const existingKeys=$('c1ImageKeys').value ? JSON.parse($('c1ImageKeys').value) : [];
+      const existingKey=$('c1ImageKey').value, existingUrl=$('c1FotoUrl').value;
+      if(!files.length){
+        if(existingKeys.length) return { keys: existingKeys, key: existingKeys[0], url: existingUrl };
+        if(existingKey) return { key: existingKey, url: existingUrl, keys:[existingKey] };
+        return { key:null, url:null, keys:[] };
+      }
+      if(files.length>5) throw new Error('Maksimal 5 foto C1');
+      const keys=[], urls=[];
+      for(let i=0;i<files.length;i++){
+        const f=files[i];
+        let blob=f, mime=f.type||'image/jpeg', fname=f.name;
+        try{ blob=await kCompressImage(f); mime='image/jpeg'; fname=f.name.replace(/\.[a-z0-9]+$/i,'')+'.jpg'; }catch(e){}
+        $('c1FotoStat').textContent=`Mengunggah C1 ${i+1}/${files.length}...`;
+        const upRes=await fetch(`${location.origin}/api/c1/upload-request?filename=${encodeURIComponent(fname)}&content_type=${encodeURIComponent(mime)}`);
+        const up=await upRes.json(); if(!up.success) throw new Error(up.error||'gagal minta upload');
+        const put=await fetch(up.upload_url,{method:'PUT',headers:{'Content-Type':mime},body:blob});
+        if(!put.ok) throw new Error(`upload C1 gagal ${put.status}`);
+        keys.push(up.image_key); urls.push(up.image_url);
+      }
+      $('c1FotoUrl').value=urls[0]||''; $('c1ImageKey').value=keys[0]||''; $('c1ImageKeys').value=JSON.stringify(keys);
+      $('c1FotoStat').textContent=`${keys.length} foto C1 terunggah ✓`;
+      return { key: keys[0], url: urls[0], keys, urls };
     }
     function c1Cancel(){
-      $('c1FDpt').value=''; $('c1FHadir').value=''; $('c1FSah').value=''; $('c1FBatal').value=''; $('c1FFoto').value=''; $('c1FotoUrl').value=''; $('c1ImageKey').value=''; $('c1FotoPrev').style.display='none'; $('c1FotoStat').textContent='Belum pilih foto C1'; $('c1DetailBox').innerHTML='<div style="text-align:center; color:var(--muted); font-size:12px; padding:12px; border:1px dashed var(--border); border-radius:10px;">Pilih kategori untuk memuat kandidat</div>'; c1Calc(); $('c1Msg').textContent='';
+      $('c1FDpt').value=''; $('c1FHadir').value=''; $('c1FSah').value=''; $('c1FBatal').value=''; $('c1FSurat').value=''; $('c1FSuratBaik').value=''; $('c1FSuratRusak').value=''; $('c1FSuratCad').value='';
+      $('c1FFoto').value=''; $('c1FotoUrl').value=''; $('c1ImageKey').value=''; if($('c1ImageKeys')) $('c1ImageKeys').value=''; $('c1FotoPrev').style.display='none'; if($('c1FotoGrid')) $('c1FotoGrid').innerHTML='';
+      $('c1FotoStat').textContent='Belum pilih foto C1 — bisa pilih 1-5 foto'; $('c1DetailBox').innerHTML='<div style="text-align:center; color:var(--muted); font-size:12px; padding:12px; border:1px dashed var(--border); border-radius:10px;">Pilih kategori untuk memuat kandidat</div>'; c1Calc(); c1CalcSurat(); $('c1Msg').textContent='';
     }
     async function c1Save(){
       const tps=$('c1FTps').value, kat=$('c1FKat').value;
       const dpt=parseInt($('c1FDpt').value,10), hadir=parseInt($('c1FHadir').value,10), sah=parseInt($('c1FSah').value,10), batal=parseInt($('c1FBatal').value,10);
+      const jSurat=parseInt($('c1FSurat').value,10), sBaik=parseInt($('c1FSuratBaik').value,10), sRusak=parseInt($('c1FSuratRusak').value,10), sCad=parseInt($('c1FSuratCad').value,10);
       if(!tps){ alert('Pilih TPS'); return; }
       if(!kat){ alert('Pilih Kategori'); return; }
       if(isNaN(dpt)||isNaN(hadir)||isNaN(sah)||isNaN(batal)){ alert('Isi DPT, Hadir, Sah, Batal (angka)'); return; }
       if(hadir > dpt){ alert(`Hadir (${hadir}) tidak boleh > DPT (${dpt})`); return; }
       if(sah + batal !== hadir){ alert(`Hadir (${hadir}) harus = Sah (${sah}) + Batal (${batal})`); return; }
+      if(!isNaN(jSurat) && !isNaN(sBaik) && !isNaN(sRusak) && !isNaN(sCad)){
+        if(sBaik + sRusak + sCad > jSurat){ alert(`Surat Baik (${sBaik})+Rusak (${sRusak})+Cadangan (${sCad}) = ${sBaik+sRusak+sCad} tidak boleh > Jumlah Surat (${jSurat})`); return; }
+      }
       const detail=[...document.querySelectorAll('#c1DetailBox input[data-kandidat]')].map(el=>({ kandidat_id: el.dataset.kandidat, jumlah_suara: parseInt(el.value,10)||0 })).filter(x=>x.jumlah_suara>0);
       const sumDetail=detail.reduce((a,b)=>a+b.jumlah_suara,0);
       if(detail.length===0){ alert('Isi minimal 1 detail suara per kandidat'); return; }
       if(sumDetail !== sah){ alert(`Total detail (${sumDetail}) harus = Suara Sah (${sah})`); return; }
       try{
-        $('c1Msg').textContent='Mengunggah foto C1...';
+        $('c1Msg').textContent='Mengunggah foto C1 (multi)...';
         const up=await c1Upload();
-        if(!up.key){ alert('Upload foto C1 wajib'); return; }
+        if(!up.key){ alert('Upload foto C1 wajib (minimal 1)'); return; }
         $('c1Msg').textContent='Mengirim ke antrean...';
-        await wFetchJSON(`${location.origin}/api/c1/submit`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ tps_id:tps, kategori_pemilihan_id:kat, image_key:up.key, suara_sah:sah, suara_tidak_sah:batal, detail_suara:detail, jumlah_dpt:dpt, jumlah_hadir:hadir })});
+        const payload={ tps_id:tps, kategori_pemilihan_id:kat, image_key:up.key, image_keys: up.keys||[up.key], suara_sah:sah, suara_tidak_sah:batal, detail_suara:detail, jumlah_dpt:dpt, jumlah_hadir:hadir };
+        if(!isNaN(jSurat)) payload.jumlah_surat_suara=jSurat;
+        if(!isNaN(sBaik)) payload.surat_baik=sBaik;
+        if(!isNaN(sRusak)) payload.surat_rusak=sRusak;
+        if(!isNaN(sCad)) payload.surat_cadangan=sCad;
+        await wFetchJSON(`${location.origin}/api/c1/submit`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
         $('c1Msg').innerHTML='<span style="color:var(--ok);font-weight:700;">✅ Berhasil masuk antrean BullMQ — cek Dashboard</span>';
         c1Cancel(); c1Load(0);
       }catch(e){ $('c1Msg').innerHTML=`<span style="color:var(--err)">Gagal: ${wEsc(e.message)}</span>`; }
@@ -3620,7 +3680,10 @@
         const d=await wFetchJSON(`${location.origin}/api/admin/transaksi?${p.toString()}`);
         $('c1PageInfo').textContent=`Total ${d.total} · tampil ${d.total?d.offset+1:0}–${d.offset+d.data.length}`;
         $('c1TotalBadge').textContent=d.total+' data';
-        $('c1BodyRows').innerHTML=d.data.map(t=>`
+        $('c1BodyRows').innerHTML=d.data.map(t=>{
+          let urls=[]; try{ urls = t.image_urls ? JSON.parse(t.image_urls) : []; }catch(e){ urls=[]; } if(!urls.length && t.image_url) urls=[t.image_url];
+          const suratTip = `Baik ${t.surat_baik ?? '-'} • Rusak ${t.surat_rusak ?? '-'} • Cad ${t.surat_cadangan ?? '-'}`;
+          return `
           <tr>
             <td style="white-space:nowrap; font-size:11px;">${new Date(t.created_at).toLocaleString('id-ID')}</td>
             <td><strong style="font-family:monospace; font-size:11px; background:#f8fafc; padding:2px 6px; border-radius:6px; border:1px solid #f1f5f9;">${wEsc(t.tps_id)}</strong></td>
@@ -3629,10 +3692,12 @@
             <td>${wEsc(t.jumlah_hadir ?? '-')}</td>
             <td><span style="color:var(--ok); font-weight:800;">${wEsc(t.total_suara_sah)}</span></td>
             <td><span style="color:var(--err); font-weight:800;">${wEsc(t.total_suara_tidak_sah)}</span></td>
-            <td><a href="${wEsc(t.image_url)}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; background:var(--text); color:#fff; padding:5px 8px; border-radius:7px; font-size:11px; text-decoration:none;">Lihat ↗</a></td>
+            <td title="${wEsc(suratTip)}">${wEsc(t.jumlah_surat_suara ?? '-')}<br><small style="font-size:10px;color:var(--muted);">${wEsc(t.surat_baik ?? '-')}/${wEsc(t.surat_rusak ?? '-')}/${wEsc(t.surat_cadangan ?? '-')}</small></td>
+            <td>${urls.length ? `<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;"><span class="badge" style="background:#e0f2fe;color:#0369a1;">${urls.length} foto</span>`+urls.slice(0,2).map(u=>`<a href="${wEsc(u)}" target="_blank" style="display:inline-block;width:28px;height:28px;border-radius:6px;overflow:hidden;border:1px solid var(--border);"><img src="${wEsc(u)}" style="width:100%;height:100%;object-fit:cover;" /></a>`).join('')+`</div>` : `<a href="${wEsc(t.image_url)}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; background:var(--text); color:#fff; padding:5px 8px; border-radius:7px; font-size:11px; text-decoration:none;">Lihat ↗</a>`}</td>
             <td>${t.status_ocr===1?'<span class="badge" style="background:#dcfce7;color:#14532d;border-color:#bbf7d0;">ok</span>': t.status_ocr===2?'<span class="badge" style="background:#fee2e2;color:#991b1b;border-color:#fecaca;">gagal</span>':'<span class="badge" style="background:#fef3c7;color:#92400e;border-color:#fde68a;">pending</span>'}</td>
-          </tr>`).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--muted);">Belum ada transaksi</td></tr>';
-      }catch(e){ $('c1BodyRows').innerHTML=`<tr><td colspan="9" style="text-align:center;color:var(--err);">${wEsc(e.message)}</td></tr>`; }
+          </tr>`;
+        }).join('')||'<tr><td colspan="10" style="text-align:center;color:var(--muted);">Belum ada transaksi</td></tr>';
+      }catch(e){ $('c1BodyRows').innerHTML=`<tr><td colspan="10" style="text-align:center;color:var(--err);">${wEsc(e.message)}</td></tr>`; }
     }
     function c1Page(d){ c1Load(c1Offset + d*C1_LIMIT); }
 

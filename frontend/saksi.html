@@ -208,6 +208,13 @@ input:focus,select:focus,textarea:focus{outline:none;background:#fff;border-colo
           <div><label>Suara Batal *</label><input id="sc1Batal" type="number" min="0" placeholder="batal" oninput="sc1Calc()" /></div>
         </div>
         <div id="sc1CalcInfo" class="badge" style="margin-top:8px;background:#fff;">Hadir = Sah + Batal</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-top:10px;">
+          <div><label>Jumlah Surat</label><input id="sc1Surat" type="number" min="0" max="1000" placeholder="total" oninput="sc1CalcSurat()" /></div>
+          <div><label>Surat Baik</label><input id="sc1SuratBaik" type="number" min="0" placeholder="baik" oninput="sc1CalcSurat()" /></div>
+          <div><label>Surat Rusak</label><input id="sc1SuratRusak" type="number" min="0" placeholder="rusak" oninput="sc1CalcSurat()" /></div>
+          <div><label>Surat Cadangan</label><input id="sc1SuratCad" type="number" min="0" placeholder="cad" oninput="sc1CalcSurat()" /></div>
+        </div>
+        <div id="sc1SuratInfo" class="badge" style="margin-top:8px;background:#fff;">Baik+Rusak+Cad ≤ Surat</div>
         <div style="margin-top:12px;">
           <label>Detail per Kandidat</label>
           <div id="sc1DetailBox" style="display:grid;gap:8px;max-height:300px;overflow:auto;padding:2px;">
@@ -215,11 +222,12 @@ input:focus,select:focus,textarea:focus{outline:none;background:#fff;border-colo
           </div>
           <div style="display:flex;gap:8px;margin-top:8px;"><span class="badge">Total: <b id="sc1DetailTotal">0</b></span><span class="badge" id="sc1DetailVs">harus = Sah</span></div>
         </div>
-        <label style="margin-top:12px;">Upload Form C1 *</label>
-        <input id="sc1Foto" type="file" accept="image/*" onchange="sc1FotoChange()" />
-        <div class="k-foto-statline"><span id="sc1FotoStat">Belum pilih foto C1</span></div>
-        <img id="sc1FotoPrev" style="display:none;max-width:100%;border-radius:12px;margin-top:8px;border:1px solid var(--border);max-height:280px;object-fit:contain;background:#fff;" alt="C1" />
-        <input type="hidden" id="sc1FotoUrl" /><input type="hidden" id="sc1ImageKey" />
+        <label style="margin-top:12px;">Upload Form C1 * <span style="font-weight:400;text-transform:none;color:var(--muted);">(1-5 foto)</span></label>
+        <input id="sc1Foto" type="file" accept="image/*" multiple onchange="sc1FotoChange()" />
+        <div class="k-foto-statline"><span id="sc1FotoStat">Belum pilih foto C1 — bisa 1-5 foto</span></div>
+        <div id="sc1FotoGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-top:8px;"></div>
+        <img id="sc1FotoPrev" style="display:none;" alt="" />
+        <input type="hidden" id="sc1FotoUrl" /><input type="hidden" id="sc1ImageKey" /><input type="hidden" id="sc1ImageKeys" />
         <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="sc1Save()">📤 Kirim C1</button>
         <div id="sc1Msg" style="margin-top:8px;font-size:12px;"></div>
       </div>
@@ -561,42 +569,85 @@ function sc1Calc(){
     if(!isNaN(hadir) && hadir!==exp){ info.textContent=`Hadir ${hadir} | Sah ${sah}+Batal ${batal}=${exp} ⚠️`; info.style.background='#fee2e2'; }
     else if(!isNaN(hadir)) { info.textContent=`✅ Hadir ${hadir} = Sah ${sah}+Batal ${batal}`; info.style.background='#f0fdf4'; }
   }
+  sc1CalcSurat();
+}
+function sc1CalcSurat(){
+  const tot=parseInt($('sc1Surat').value,10), baik=parseInt($('sc1SuratBaik').value,10), rusak=parseInt($('sc1SuratRusak').value,10), cad=parseInt($('sc1SuratCad').value,10);
+  const el=$('sc1SuratInfo');
+  if(!el) return;
+  if(isNaN(tot) && isNaN(baik) && isNaN(rusak) && isNaN(cad)){ el.textContent='Baik+Rusak+Cad ≤ Surat'; el.style.background='#fff'; return; }
+  const sum=(isNaN(baik)?0:baik)+(isNaN(rusak)?0:rusak)+(isNaN(cad)?0:cad);
+  if(!isNaN(tot)){
+    if(sum>tot){ el.textContent=`⚠️ Baik ${isNaN(baik)?0:baik}+Rusak ${isNaN(rusak)?0:rusak}+Cad ${isNaN(cad)?0:cad}=${sum} > Surat ${tot}`; el.style.background='#fee2e2'; el.style.color='#991b1b'; }
+    else if(sum===tot && tot!==0){ el.textContent=`✅ Baik+Rusak+Cad ${sum} = Surat ${tot}`; el.style.background='#f0fdf4'; el.style.color='#14532d'; }
+    else { el.textContent=`Baik+Rusak+Cad ${sum} ≤ Surat ${tot} • Sisa ${tot-sum}`; el.style.background='#f8fafc'; }
+  } else {
+    el.textContent=`Baik+Rusak+Cad = ${sum} (isi Surat untuk validasi)`;
+  }
 }
 function sc1FotoChange(){
-  const f=$('sc1Foto').files[0];
-  $('sc1FotoStat').textContent=f? `${f.name} (${(f.size/1024).toFixed(1)}KB)` : 'Belum pilih foto C1';
-  if(f){ $('sc1FotoPrev').src=URL.createObjectURL(f); $('sc1FotoPrev').style.display=''; } else if(!$('sc1FotoUrl').value) $('sc1FotoPrev').style.display='none';
+  const files=$('sc1Foto').files;
+  const grid=$('sc1FotoGrid');
+  if(!files.length){
+    $('sc1FotoStat').textContent='Belum pilih foto C1 — bisa 1-5 foto';
+    if(grid) grid.innerHTML='';
+    if(!$('sc1FotoUrl').value) $('sc1FotoPrev').style.display='none';
+    return;
+  }
+  if(files.length>5){ alert('Maksimal 5 foto C1'); $('sc1Foto').value=''; return; }
+  $('sc1FotoStat').textContent=`${files.length} foto dipilih`;
+  if(grid){
+    grid.innerHTML=[...files].map(f=>`<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff;"><img src="${URL.createObjectURL(f)}" style="width:100%;height:80px;object-fit:cover;" /><div style="font-size:10px;padding:4px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#f8fafc;">${wEsc(f.name)} ${(f.size/1024).toFixed(0)}KB</div></div>`).join('');
+  }
+  $('sc1FotoPrev').style.display='none';
 }
 async function sc1Save(){
   const kat=$('sc1Kat').value;
   const dpt=parseInt($('sc1Dpt').value,10), hadir=parseInt($('sc1Hadir').value,10), sah=parseInt($('sc1Sah').value,10), batal=parseInt($('sc1Batal').value,10);
+  const jSurat=parseInt($('sc1Surat').value,10), sBaik=parseInt($('sc1SuratBaik').value,10), sRusak=parseInt($('sc1SuratRusak').value,10), sCad=parseInt($('sc1SuratCad').value,10);
   if(!curSaksi) return alert('Sesi habis, login ulang');
   if(!kat) return alert('Pilih kategori');
   if([dpt,hadir,sah,batal].some(v=>isNaN(v))) return alert('Isi DPT, Hadir, Sah, Batal');
   if(hadir>dpt) return alert(`Hadir ${hadir} > DPT ${dpt}`);
   if(sah+batal!==hadir) return alert(`Hadir harus = Sah+Batal (${sah}+${batal}=${sah+batal} ≠ ${hadir})`);
+  if(!isNaN(jSurat) && !isNaN(sBaik) && !isNaN(sRusak) && !isNaN(sCad)){
+    if(sBaik+sRusak+sCad > jSurat) return alert(`Baik+Rusak+Cad ${sBaik+sRusak+sCad} > Surat ${jSurat}`);
+  }
   const detail=[...document.querySelectorAll('#sc1DetailBox input[data-kandidat]')].map(el=>({kandidat_id:el.dataset.kandidat, jumlah_suara:parseInt(el.value,10)||0})).filter(x=>x.jumlah_suara>0);
   const sum=detail.reduce((a,b)=>a+b.jumlah_suara,0);
   if(!detail.length) return alert('Isi detail per kandidat minimal 1');
   if(sum!==sah) return alert(`Total detail ${sum} ≠ Sah ${sah}`);
-  // upload
-  let key=null;
-  const f=$('sc1Foto').files[0];
-  if(f){
-    let blob=f, mime=f.type||'image/jpeg', fname=f.name;
-    try{ const bmp=await createImageBitmap(f); const maxDim=1280; const scale=Math.min(1,maxDim/Math.max(bmp.width,bmp.height)); const w=Math.max(1,Math.round(bmp.width*scale)), h=Math.max(1,Math.round(bmp.height*scale)); const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h; canvas.getContext('2d').drawImage(bmp,0,0,w,h); blob=await new Promise(r=>canvas.toBlob(r,'image/jpeg',0.82)); bmp.close(); mime='image/jpeg'; fname=f.name.replace(/\.[a-z0-9]+$/i,'')+'.jpg'; }catch(e){}
-    $('sc1FotoStat').textContent='Mengunggah C1...';
-    const upRes=await fetch(`${API}/api/c1/upload-request?filename=${encodeURIComponent(fname)}&content_type=${encodeURIComponent(mime)}`);
-    const up=await upRes.json(); if(!up.success) throw new Error(up.error);
-    const put=await fetch(up.upload_url,{method:'PUT',headers:{'Content-Type':mime},body:blob}); if(!put.ok) throw new Error('upload gagal');
-    key=up.image_key; $('sc1FotoUrl').value=up.image_url; $('sc1ImageKey').value=key;
+  // upload multi 1-5
+  let keys=[], firstKey=null;
+  const files=$('sc1Foto').files;
+  if(files.length){
+    if(files.length>5) return alert('Maks 5 foto');
+    for(let i=0;i<files.length;i++){
+      const f=files[i];
+      let blob=f, mime=f.type||'image/jpeg', fname=f.name;
+      try{ const bmp=await createImageBitmap(f); const maxDim=1280; const scale=Math.min(1,maxDim/Math.max(bmp.width,bmp.height)); const w=Math.max(1,Math.round(bmp.width*scale)), h=Math.max(1,Math.round(bmp.height*scale)); const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h; canvas.getContext('2d').drawImage(bmp,0,0,w,h); blob=await new Promise(r=>canvas.toBlob(r,'image/jpeg',0.82)); bmp.close(); mime='image/jpeg'; fname=f.name.replace(/\.[a-z0-9]+$/i,'')+'.jpg'; }catch(e){}
+      $('sc1FotoStat').textContent=`Mengunggah ${i+1}/${files.length}...`;
+      const upRes=await fetch(`${API}/api/c1/upload-request?filename=${encodeURIComponent(fname)}&content_type=${encodeURIComponent(mime)}`);
+      const up=await upRes.json(); if(!up.success) throw new Error(up.error);
+      const put=await fetch(up.upload_url,{method:'PUT',headers:{'Content-Type':mime},body:blob}); if(!put.ok) throw new Error('upload gagal');
+      keys.push(up.image_key);
+    }
+    $('sc1ImageKeys').value=JSON.stringify(keys); $('sc1ImageKey').value=keys[0]; firstKey=keys[0];
+    $('sc1FotoStat').textContent=keys.length+' foto C1 terunggah ✓';
   } else {
-    key=$('sc1ImageKey').value||null;
-    if(!key) return alert('Upload foto C1 wajib');
+    const ek=$('sc1ImageKey').value, eks=$('sc1ImageKeys').value;
+    if(eks){ try{ keys=JSON.parse(eks); firstKey=keys[0]; }catch(e){} }
+    else if(ek){ keys=[ek]; firstKey=ek; }
+    else return alert('Upload foto C1 wajib (1-5)');
   }
   try{
     $('sc1Msg').textContent='Mengirim...';
-    const r=await fetch(`${API}/api/c1/submit`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+saksiToken()},body:JSON.stringify({tps_id:curSaksi.tps_id, kategori_pemilihan_id:kat, image_key:key, suara_sah:sah, suara_tidak_sah:batal, detail_suara:detail, jumlah_dpt:dpt, jumlah_hadir:hadir})});
+    const payload={ tps_id:curSaksi.tps_id, kategori_pemilihan_id:kat, image_key:firstKey, image_keys:keys, suara_sah:sah, suara_tidak_sah:batal, detail_suara:detail, jumlah_dpt:dpt, jumlah_hadir:hadir };
+    if(!isNaN(jSurat)) payload.jumlah_surat_suara=jSurat;
+    if(!isNaN(sBaik)) payload.surat_baik=sBaik;
+    if(!isNaN(sRusak)) payload.surat_rusak=sRusak;
+    if(!isNaN(sCad)) payload.surat_cadangan=sCad;
+    const r=await fetch(`${API}/api/c1/submit`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+saksiToken()},body:JSON.stringify(payload)});
     const j=await r.json(); if(!j.success) throw new Error(j.error);
     $('sc1Msg').innerHTML='<span style="color:var(--ok);font-weight:800;">✅ Terkirim ke antrean</span>';
     // reset detail inputs

@@ -19,7 +19,7 @@ let buffer = [];
 let lastFlushAt = Date.now();
 let totalInserted = 0;
 
-const TX_COLS = 'id,tps_id,kategori_pemilihan_id,jumlah_dpt,jumlah_hadir,total_suara_sah,total_suara_tidak_sah,image_url,status_ocr';
+const TX_COLS = 'id,tps_id,kategori_pemilihan_id,jumlah_dpt,jumlah_hadir,jumlah_surat_suara,surat_baik,surat_rusak,surat_cadangan,total_suara_sah,total_suara_tidak_sah,image_url,image_urls,status_ocr';
 const DET_COLS = 'transaksi_c1_id,kandidat_id,jumlah_suara';
 
 function imageUrl(key) {
@@ -34,15 +34,22 @@ async function insertBatch(batch) {
   for (const job of batch) {
     const d = job.data;
     const id = randomUUID();
+    const urls = (d.image_keys && d.image_keys.length ? d.image_keys : (d.image_key ? [d.image_key] : [])).map(k=>imageUrl(k));
+    const firstUrl = urls[0] || imageUrl(d.image_key);
     txRows.push([
       id,
       d.tps_id,
       d.kategori_pemilihan_id,
       d.jumlah_dpt ?? null,
       d.jumlah_hadir ?? null,
+      d.jumlah_surat_suara ?? null,
+      d.surat_baik ?? null,
+      d.surat_rusak ?? null,
+      d.surat_cadangan ?? null,
       d.suara_sah,
       d.suara_tidak_sah,
-      imageUrl(d.image_key),
+      firstUrl,
+      urls.length ? JSON.stringify(urls) : null,
       0
     ]);
     for (const s of d.detail_suara || []) {
