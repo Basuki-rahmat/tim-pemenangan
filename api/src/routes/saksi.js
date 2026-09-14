@@ -18,7 +18,8 @@ const { requireAdmin, hashPassword, genPassword } = require('../auth');
 const router = Router();
 
 // Kolom aman (password_hash TIDAK PERNAH dikirim ke klien)
-const SAKSI_COLS = 'id, nama, nik, username, no_hp, tps_id, kandidat_id, keterangan, created_at';
+const SAKSI_COLS = 'id, nama, nik, username, no_hp, tps_id, kandidat_id, keterangan, foto_ktp, bank, no_rekening, created_at';
+const ALLOWED_BANK = ['BCA','BRI','BNI','MANDIRI','BSI','CIMB','CIMB NIAGA','DANAMON','PERMATA','BTN','BTPN','JENIUS','SEABANK','BANK JAGO','JAGO','DANA','OVO','GOPAY','SHOPEEPAY','LINKAJA','LAINNYA'];
 
 function likeParam(search) {
   return `%${String(search).replace(/[%_]/g, '')}%`;
@@ -31,6 +32,14 @@ function validNik(nik) {
 function validHp(hp) {
   if (hp === undefined || hp === null || hp === '') return true;
   return /^08[0-9]{7,13}$/.test(String(hp).trim());
+}
+function validBank(bank) {
+  if (bank === undefined || bank === null || bank === '') return true;
+  return ALLOWED_BANK.includes(String(bank).trim().toUpperCase());
+}
+function validRek(rek) {
+  if (rek === undefined || rek === null || rek === '') return true;
+  return /^[0-9]{8,20}$/.test(String(rek).trim());
 }
 
 router.get('/', async (req, res) => {
@@ -133,6 +142,17 @@ router.post('/', requireAdmin, async (req, res) => {
   const kandidatId = req.body.kandidat_id === undefined || req.body.kandidat_id === null || req.body.kandidat_id === ''
     ? null
     : String(req.body.kandidat_id).trim().toUpperCase().slice(0, 64);
+  const fotoKtp = req.body.foto_ktp === undefined || req.body.foto_ktp === null || req.body.foto_ktp === ''
+    ? null : String(req.body.foto_ktp).trim().slice(0, 512);
+  const bank = req.body.bank === undefined || req.body.bank === null || req.body.bank === ''
+    ? null : String(req.body.bank).trim().toUpperCase().slice(0, 32);
+  const noRek = req.body.no_rekening === undefined || req.body.no_rekening === null || req.body.no_rekening === ''
+    ? null : String(req.body.no_rekening).trim().slice(0, 64);
+  if (bank && !validBank(bank)) return res.status(400).json({ success: false, error: 'bank tidak valid. Pilihan: ' + ALLOWED_BANK.join(', ') });
+  if (noRek && !validRek(noRek)) return res.status(400).json({ success: false, error: 'no_rekening harus 8-20 digit angka' });
+  if (!fotoKtp && (bank || noRek)) {
+    // bank/rekening opsional, tapi jika diisi perlu konsisten; foto KTP tetap opsional
+  }
   try {
     const [tps] = await writePool.query('SELECT id FROM master_tps WHERE id = ?', [tpsId]);
     if (tps.length === 0) return res.status(400).json({ success: false, error: 'TPS tidak ditemukan di master' });
@@ -145,8 +165,8 @@ router.post('/', requireAdmin, async (req, res) => {
       if (dup.length > 0) return res.status(409).json({ success: false, error: 'username sudah dipakai' });
     }
     const [r] = await writePool.query(
-      'INSERT INTO saksi (nama, nik, username, no_hp, tps_id, kandidat_id, keterangan) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [nama, nik, wantUsername, noHp, tpsId, kandidatId, keterangan]
+      'INSERT INTO saksi (nama, nik, username, no_hp, tps_id, kandidat_id, keterangan, foto_ktp, bank, no_rekening) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [nama, nik, wantUsername, noHp, tpsId, kandidatId, keterangan, fotoKtp, bank, noRek]
     );
     // Username otomatis + password acak (plaintext hanya dikembalikan sekali di sini)
     const username = wantUsername || ('sk' + String(r.insertId).padStart(6, '0'));
@@ -231,6 +251,23 @@ router.put('/:id', requireAdmin, async (req, res) => {
     }
     sets.push('username = ?');
     vals.push(uname);
+  }
+  if (req.body.foto_ktp !== undefined) {
+    const fktp = req.body.foto_ktp === '' || req.body.foto_ktp === null ? null : String(req.body.foto_ktp).trim().slice(0, 512);
+    sets.push('foto_ktp = ?');
+    vals.push(fktp);
+  }
+  if (req.body.bank !== undefined) {
+    const b = req.body.bank === '' || req.body.bank === null ? null : String(req.body.bank).trim().toUpperCase().slice(0, 32);
+    if (b && !validBank(b)) return res.status(400).json({ success: false, error: 'bank tidak valid. Pilihan: ' + ALLOWED_BANK.join(', ') });
+    sets.push('bank = ?');
+    vals.push(b);
+  }
+  if (req.body.no_rekening !== undefined) {
+    const nr = req.body.no_rekening === '' || req.body.no_rekening === null ? null : String(req.body.no_rekening).trim().slice(0, 64);
+    if (nr && !validRek(nr)) return res.status(400).json({ success: false, error: 'no_rekening harus 8-20 digit angka' });
+    sets.push('no_rekening = ?');
+    vals.push(nr);
   }
   if (sets.length === 0) return res.status(400).json({ success: false, error: 'tidak ada field yang diubah' });
   try {

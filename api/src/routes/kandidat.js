@@ -123,7 +123,7 @@ router.get('/list', async (req, res) => {
   }
   try {
     const [rows] = await readPool.query(
-      `SELECT m.id, m.kategori_pemilihan_id, m.dapil_id, m.tipe_kandidat, m.nama, m.foto, m.partai, m.no_urut,
+      `SELECT m.id, m.kategori_pemilihan_id, m.dapil_id, m.tipe_kandidat, m.nama, m.foto, m.partai, m.keterangan, m.no_urut,
               k.nama_pemilihan, d.nama AS dapil_nama, d.kode AS dapil_kode
          FROM master_kandidat m
          LEFT JOIN kategori_pemilihan k ON k.id = m.kategori_pemilihan_id
@@ -160,6 +160,9 @@ router.post('/list', requireAdmin, async (req, res) => {
   const dapilId = req.body.dapil_id !== undefined && req.body.dapil_id !== null && req.body.dapil_id !== ''
     ? String(req.body.dapil_id).trim().toUpperCase().slice(0, 24)
     : null;
+  const keterangan = req.body.keterangan !== undefined && req.body.keterangan !== null && req.body.keterangan !== ''
+    ? String(req.body.keterangan).trim().slice(0, 2000)
+    : null;
   if (!id) return res.status(400).json({ success: false, error: 'id kandidat wajib diisi' });
   if (!kategoriId) return res.status(400).json({ success: false, error: 'kategori_pemilihan_id wajib diisi' });
   if (!TIPE.includes(tipe)) {
@@ -179,8 +182,8 @@ router.post('/list', requireAdmin, async (req, res) => {
     const [dup] = await writePool.query('SELECT id FROM master_kandidat WHERE id = ?', [id]);
     if (dup.length > 0) return res.status(409).json({ success: false, error: 'id kandidat sudah dipakai' });
     await writePool.query(
-      'INSERT INTO master_kandidat (id, kategori_pemilihan_id, dapil_id, tipe_kandidat, nama, foto, partai, no_urut) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, kategoriId, dapilId, tipe, nama, foto, partai, noUrut]
+      'INSERT INTO master_kandidat (id, kategori_pemilihan_id, dapil_id, tipe_kandidat, nama, foto, partai, keterangan, no_urut) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, kategoriId, dapilId, tipe, nama, foto, partai, keterangan, noUrut]
     );
     const [rows] = await writePool.query('SELECT * FROM master_kandidat WHERE id = ?', [id]);
     res.status(201).json({ success: true, elapsed_ms: Date.now() - t0, data: rows[0] });
@@ -241,6 +244,13 @@ router.put('/list/:id', requireAdmin, async (req, res) => {
     }
     sets.push('dapil_id = ?');
     vals.push(dapilId);
+  }
+  if (req.body.keterangan !== undefined) {
+    const ket = req.body.keterangan === '' || req.body.keterangan === null
+      ? null
+      : String(req.body.keterangan).trim().slice(0, 2000);
+    sets.push('keterangan = ?');
+    vals.push(ket);
   }
   if (sets.length === 0) return res.status(400).json({ success: false, error: 'tidak ada field yang diubah' });
   try {
