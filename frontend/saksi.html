@@ -209,18 +209,21 @@ input:focus,select:focus,textarea:focus{outline:none;background:#fff;border-colo
         </div>
         <div id="sc1CalcInfo" class="badge" style="margin-top:8px;background:#fff;">Hadir = Sah + Batal</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-top:10px;">
-          <div><label>Jumlah Surat</label><input id="sc1Surat" type="number" min="0" max="1000" placeholder="total" oninput="sc1CalcSurat()" /></div>
-          <div><label>Surat Baik</label><input id="sc1SuratBaik" type="number" min="0" placeholder="baik" oninput="sc1CalcSurat()" /></div>
-          <div><label>Surat Rusak</label><input id="sc1SuratRusak" type="number" min="0" placeholder="rusak" oninput="sc1CalcSurat()" /></div>
-          <div><label>Surat Cadangan</label><input id="sc1SuratCad" type="number" min="0" placeholder="cad" oninput="sc1CalcSurat()" /></div>
+          <div><label>JmL Surat</label><input id="sc1Surat" type="number" min="0" max="1000" placeholder="total" oninput="sc1CalcSurat()" /></div>
+          <div><label>Baik</label><input id="sc1SuratBaik" type="number" min="0" placeholder="baik" oninput="sc1CalcSurat()" /></div>
+          <div><label>Rusak</label><input id="sc1SuratRusak" type="number" min="0" placeholder="rusak" oninput="sc1CalcSurat()" /></div>
+          <div><label>Cadangan</label><input id="sc1SuratCad" type="number" min="0" placeholder="cad" oninput="sc1CalcSurat()" /></div>
         </div>
-        <div id="sc1SuratInfo" class="badge" style="margin-top:8px;background:#fff;">Baik+Rusak+Cad ≤ Surat</div>
+        <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; align-items:center;">
+          <span id="sc1SuratInfo" class="badge" style="background:#fff;">Baik+Rusak+Cad ≤ Surat</span>
+          <button id="sc1FixSuratBtn" class="btn btn-ghost" style="display:none; padding:4px 8px; font-size:11px; background:#fef3c7; border-color:#fde68a; color:#92400e;" onclick="sc1FixSurat()">🔧 Sesuaikan Surat</button>
+        </div>
         <div style="margin-top:12px;">
           <label>Detail per Kandidat</label>
           <div id="sc1DetailBox" style="display:grid;gap:8px;max-height:300px;overflow:auto;padding:2px;">
             <div style="text-align:center;color:var(--muted);font-size:12px;padding:10px;border:1px dashed var(--border);border-radius:10px;">Pilih kategori</div>
           </div>
-          <div style="display:flex;gap:8px;margin-top:8px;"><span class="badge">Total: <b id="sc1DetailTotal">0</b></span><span class="badge" id="sc1DetailVs">harus = Sah</span></div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center;"><span class="badge">Total: <b id="sc1DetailTotal">0</b></span><span class="badge" id="sc1DetailVs">harus = Sah</span><button id="sc1FixDetailBtn" class="btn btn-ghost" style="display:none; padding:4px 8px; font-size:11px; background:#f0fdf4; border-color:#bbf7d0; color:#14532d;" onclick="sc1FixDetail()">🔧 Isi Detail = Sah</button></div>
         </div>
         <label style="margin-top:12px;">Upload Form C1 * <span style="font-weight:400;text-transform:none;color:var(--muted);">(1-5 foto)</span></label>
         <input id="sc1Foto" type="file" accept="image/*" multiple onchange="sc1FotoChange()" />
@@ -563,6 +566,14 @@ function sc1Calc(){
     else if(sum===0) { vs.textContent='Isi detail (harus = Sah)'; vs.style.background='#fef3c7'; }
     else { vs.textContent=`⚠️ Detail ${sum} ≠ Sah ${sah}`; vs.style.background='#fee2e2'; vs.style.color='#991b1b'; }
   }
+  const fixD=$('sc1FixDetailBtn');
+  if(fixD){
+    if(!isNaN(sah) && sum!==sah){
+      fixD.style.display='';
+      if(sum===0) fixD.textContent=`🔧 Isi Detail = ${sah}`;
+      else fixD.textContent=`🔧 Detail ${sum} → ${sah}`;
+    } else fixD.style.display='none';
+  }
   const info=$('sc1CalcInfo');
   if(!isNaN(sah)&&!isNaN(batal)){
     const exp=sah+batal;
@@ -583,7 +594,36 @@ function sc1CalcSurat(){
     else { el.textContent=`Baik+Rusak+Cad ${sum} ≤ Surat ${tot} • Sisa ${tot-sum}`; el.style.background='#f8fafc'; }
   } else {
     el.textContent=`Baik+Rusak+Cad = ${sum} (isi Surat untuk validasi)`;
+    el.style.background='#fff';
   }
+  const btn=$('sc1FixSuratBtn');
+  if(btn){
+    const sum2=(isNaN(baik)?0:baik)+(isNaN(rusak)?0:rusak)+(isNaN(cad)?0:cad);
+    if(!isNaN(tot) && sum2>tot){ btn.style.display=''; btn.textContent=`🔧 Surat ${tot} → ${sum2}`; }
+    else if(!isNaN(tot) && sum2 < tot && sum2!==0){ btn.style.display=''; btn.textContent=`🔧 Baik ${isNaN(baik)?0:baik} → ${tot - (isNaN(rusak)?0:rusak) - (isNaN(cad)?0:cad)}`; }
+    else btn.style.display='none';
+  }
+}
+function sc1FixSurat(){
+  const baik=parseInt($('sc1SuratBaik').value,10)||0, rusak=parseInt($('sc1SuratRusak').value,10)||0, cad=parseInt($('sc1SuratCad').value,10)||0;
+  const sum=baik+rusak+cad;
+  if(sum===0){ alert('Isi Baik/Rusak/Cadangan dulu'); return; }
+  $('sc1Surat').value=sum;
+  sc1CalcSurat();
+  $('sc1Surat').focus();
+}
+function sc1FixDetail(){
+  const sah=parseInt($('sc1Sah').value,10);
+  if(isNaN(sah)){ alert('Isi Suara Sah dulu'); return; }
+  const inputs=[...document.querySelectorAll('#sc1DetailBox input[data-kandidat]')];
+  if(!inputs.length){ alert('Pilih kategori dulu'); return; }
+  if(inputs.length===1) inputs[0].value=sah;
+  else {
+    const otherSum=inputs.slice(1).reduce((a,el)=>a+(parseInt(el.value,10)||0),0);
+    inputs[0].value=Math.max(0, sah - otherSum);
+  }
+  sc1Calc();
+  inputs[0].focus();
 }
 function sc1FotoChange(){
   const files=$('sc1Foto').files;
@@ -603,20 +643,37 @@ function sc1FotoChange(){
 }
 async function sc1Save(){
   const kat=$('sc1Kat').value;
-  const dpt=parseInt($('sc1Dpt').value,10), hadir=parseInt($('sc1Hadir').value,10), sah=parseInt($('sc1Sah').value,10), batal=parseInt($('sc1Batal').value,10);
+  let dpt=parseInt($('sc1Dpt').value,10), hadir=parseInt($('sc1Hadir').value,10), sah=parseInt($('sc1Sah').value,10), batal=parseInt($('sc1Batal').value,10);
   const jSurat=parseInt($('sc1Surat').value,10), sBaik=parseInt($('sc1SuratBaik').value,10), sRusak=parseInt($('sc1SuratRusak').value,10), sCad=parseInt($('sc1SuratCad').value,10);
   if(!curSaksi) return alert('Sesi habis, login ulang');
   if(!kat) return alert('Pilih kategori');
   if([dpt,hadir,sah,batal].some(v=>isNaN(v))) return alert('Isi DPT, Hadir, Sah, Batal');
   if(hadir>dpt) return alert(`Hadir ${hadir} > DPT ${dpt}`);
-  if(sah+batal!==hadir) return alert(`Hadir harus = Sah+Batal (${sah}+${batal}=${sah+batal} ≠ ${hadir})`);
+  if(sah+batal!==hadir){
+    const expect=sah+batal;
+    if(confirm(`Hadir (${hadir}) ≠ Sah (${sah}) + Batal (${batal}) = ${expect}\n\nPerbaiki otomatis jadi Hadir = ${expect}?`)){
+      $('sc1Hadir').value=expect; if(typeof sc1Calc==='function') sc1Calc(); hadir=expect;
+    } else return;
+  }
+  if(hadir > dpt){ alert(`Setelah diperbaiki, Hadir ${hadir} > DPT ${dpt} — cek DPT`); return; }
   if(!isNaN(jSurat) && !isNaN(sBaik) && !isNaN(sRusak) && !isNaN(sCad)){
-    if(sBaik+sRusak+sCad > jSurat) return alert(`Baik+Rusak+Cad ${sBaik+sRusak+sCad} > Surat ${jSurat}`);
+    const sumSurat=sBaik+sRusak+sCad;
+    if(sumSurat > jSurat){
+      if(confirm(`Baik ${sBaik}+Rusak ${sRusak}+Cad ${sCad} = ${sumSurat} > Surat ${jSurat}\n\nPerbaiki Surat jadi ${sumSurat}?`)){
+        $('sc1Surat').value=sumSurat; sc1CalcSurat();
+      } else return;
+    }
   }
   const detail=[...document.querySelectorAll('#sc1DetailBox input[data-kandidat]')].map(el=>({kandidat_id:el.dataset.kandidat, jumlah_suara:parseInt(el.value,10)||0})).filter(x=>x.jumlah_suara>0);
   const sum=detail.reduce((a,b)=>a+b.jumlah_suara,0);
   if(!detail.length) return alert('Isi detail per kandidat minimal 1');
-  if(sum!==sah) return alert(`Total detail ${sum} ≠ Sah ${sah}`);
+  if(sum!==sah){
+    if(confirm(`Total detail ${sum} ≠ Sah ${sah}\n\nPerbaiki detail jadi ${sah} (kandidat pertama)?`)){
+      // isi kandidat pertama
+      const first=[...document.querySelectorAll('#sc1DetailBox input[data-kandidat]')][0];
+      if(first){ first.value=sah - (sum - (parseInt(first.value,10)||0)); sc1Calc(); }
+    } else return;
+  }
   // upload multi 1-5
   let keys=[], firstKey=null;
   const files=$('sc1Foto').files;
@@ -658,11 +715,13 @@ async function sc1Save(){
 async function sc1Load(){
   try{
     if(!curSaksi) return;
-    const r=await sFetch(`${API}/api/c1/rekapitulasi?kategori_pemilihan_id=${encodeURIComponent($('sc1Kat').value||'')} `);
-    // riwayat personal: filter by tps? gunakan admin transaksi filtered by tps
-    const t=await sFetch(`${API}/api/admin/transaksi?limit=5&tps=${encodeURIComponent(curSaksi.tps_id)}`).catch(()=>({data:[]}));
-    $('sc1List').innerHTML=t.data.map(x=>`<div style="padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:#fff;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px;"><div><div style="font-weight:800;font-size:12px;">${wEsc(x.kategori_pemilihan_id)} • TPS ${wEsc(x.tps_id)}</div><div style="font-size:11px;color:var(--muted);">${new Date(x.created_at).toLocaleString('id-ID')} • Sah ${x.total_suara_sah} Batal ${x.total_suara_tidak_sah}</div></div><a href="${wEsc(x.image_url)}" target="_blank" class="badge" style="background:var(--text);color:#fff;">Lihat</a></div>`).join('') || '<div style="text-align:center;color:var(--muted);font-size:12px;padding:10px;">Belum ada riwayat</div>';
-  }catch(e){}
+    const j=await sFetch(`${API}/api/saksi/c1?limit=5`);
+    $('sc1List').innerHTML=j.data.map(x=>{
+      let urls=[]; try{ urls=x.image_urls? JSON.parse(x.image_urls):[]; }catch(e){} if(!urls.length && x.image_url) urls=[x.image_url];
+      const surat = x.jumlah_surat_suara!=null ? `Surat ${x.jumlah_surat_suara} (B${x.surat_baik??'-'}/R${x.surat_rusak??'-'}/C${x.surat_cadangan??'-'})` : '';
+      return `<div style="padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:#fff;margin-bottom:6px;display:flex;gap:8px;align-items:center;"><div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${wEsc(x.kategori_pemilihan_id)} • TPS ${wEsc(x.tps_id)} • ${wEsc(surat)}</div><div style="font-size:11px;color:var(--muted);">${new Date(x.created_at).toLocaleString('id-ID')} • Sah ${x.total_suara_sah} Batal ${x.total_suara_tidak_sah} • DPT ${x.jumlah_dpt??'-'} Hadir ${x.jumlah_hadir??'-'}</div></div><div style="display:flex;gap:4px;align-items:center;">${urls.slice(0,2).map(u=>`<a href="${wEsc(u)}" target="_blank"><img src="${wEsc(u)}" style="width:36px;height:36px;border-radius:7px;object-fit:cover;border:1px solid var(--border);" /></a>`).join('')}${urls.length>2?`<span class="badge">+${urls.length-2}</span>`:''}</div></div>`;
+    }).join('') || '<div style="text-align:center;color:var(--muted);font-size:12px;padding:10px;">Belum ada riwayat</div>';
+  }catch(e){ $('sc1List').innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;padding:10px;">Belum ada riwayat</div>'; }
 }
 
 // init
