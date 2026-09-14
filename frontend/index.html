@@ -3582,9 +3582,19 @@
         const expect=sah+batal;
         if(isNaN(hadir) || hadir!==expect){
           // auto isi hadir jika kosong atau tidak match? hanya info
-          calcInfo.textContent=`Hadir ${isNaN(hadir)?'—':hadir} | Sah ${sah} + Batal ${batal} = ${expect} ${!isNaN(hadir) && hadir!==expect? '⚠️ tidak cocok':'✅'}`;
-          calcInfo.style.background = (!isNaN(hadir) && hadir!==expect) ? '#fee2e2' : '#f0fdf4';
-          calcInfo.style.borderColor = (!isNaN(hadir) && hadir!==expect) ? '#fecaca' : '#bbf7d0';
+          if(isNaN(hadir)){
+            calcInfo.textContent=`Sah ${sah}+Batal ${batal}=${expect} — isi Hadir ≥ ${expect}`;
+            calcInfo.style.background='#fef3c7'; calcInfo.style.borderColor='#fde68a';
+          } else if(expect > hadir){
+            calcInfo.textContent=`❌ Sah ${sah}+Batal ${batal}=${expect} > Hadir ${hadir} — melebihi hadir`;
+            calcInfo.style.background='#fee2e2'; calcInfo.style.borderColor='#fecaca'; calcInfo.style.color='#991b1b';
+          } else if(expect < hadir){
+            calcInfo.textContent=`⚠️ Hadir ${hadir} — Sah ${sah}+Batal ${batal}=${expect} • ${hadir-expect} tidak memilih (boleh)`;
+            calcInfo.style.background='#fef3c7'; calcInfo.style.borderColor='#fde68a'; calcInfo.style.color='#92400e';
+          } else {
+            calcInfo.textContent=`✅ Hadir ${hadir} = Sah ${sah}+Batal ${batal} (semua hadir memilih)`;
+            calcInfo.style.background='#f0fdf4'; calcInfo.style.borderColor='#bbf7d0'; calcInfo.style.color='#14532d';
+          }
         } else {
           calcInfo.textContent=`✅ Hadir ${hadir} = Sah ${sah} + Batal ${batal}`;
           calcInfo.style.background='#f0fdf4'; calcInfo.style.borderColor='#bbf7d0';
@@ -3717,13 +3727,11 @@
       if(!kat){ alert('Pilih Kategori'); return; }
       if(isNaN(dpt)||isNaN(hadir)||isNaN(sah)||isNaN(batal)){ alert('Isi DPT, Hadir, Sah, Batal (angka)'); return; }
       if(hadir > dpt){ alert(`Hadir (${hadir}) tidak boleh > DPT (${dpt})`); return; }
-      if(sah + batal !== hadir){
-        const expect=sah+batal;
-        if(confirm(`Hadir (${hadir}) ≠ Sah (${sah}) + Batal (${batal}) = ${expect}\n\nPerbaiki otomatis jadi Hadir = ${expect}?`)){
-          $('c1FHadir').value=expect;
+      if(sah + batal > hadir){
+        if(confirm(`Sah ${sah}+Batal ${batal}=${sah+batal} > Hadir ${hadir}\n\nNaikkan Hadir jadi ${sah+batal}? (boleh jika ada yang tidak memilih, Hadir bisa > Sah+Batal)`)){
+          $('c1FHadir').value=sah+batal;
           if(typeof c1Calc==='function') c1Calc();
-          hadir=expect;
-          if(hadir > dpt){ alert(`Setelah diperbaiki, Hadir ${hadir} > DPT ${dpt} — cek DPT`); return; }
+          hadir=sah+batal;
         } else return;
       }
       if(!isNaN(jSurat) && !isNaN(sBaik) && !isNaN(sRusak) && !isNaN(sCad)){

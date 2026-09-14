@@ -82,9 +82,9 @@ router.post('/submit', async (req, res) => {
   if (dpt !== null && hadir !== null && hadir > dpt) {
     return res.status(400).json({ success: false, error: 'jumlah_hadir tidak boleh > jumlah_dpt' });
   }
-  if (hadir !== null && (suara_sah + suara_tidak_sah) !== hadir) {
-    // batal = tidak sah, hadir = sah + tidak sah
-    return res.status(400).json({ success: false, error: `jumlah_hadir (${hadir}) harus = suara_sah (${suara_sah}) + suara_tidak_sah (${suara_tidak_sah})` });
+  if (hadir !== null && (suara_sah + suara_tidak_sah) > hadir) {
+    // hadir boleh > sah+batal (tidak semua pemilih mencoblos), tapi tidak boleh < sah+batal
+    return res.status(400).json({ success: false, error: `suara_sah (${suara_sah}) + tidak_sah (${suara_tidak_sah}) = ${suara_sah+suara_tidak_sah} tidak boleh > jumlah_hadir (${hadir}) — ada yang hadir tidak memilih tidak diperbolehkan melebihi` });
   }
   // validasi surat suara (opsional)
   let jSurat = jumlah_surat_suara !== undefined && jumlah_surat_suara !== null && jumlah_surat_suara !== '' ? parseInt(jumlah_surat_suara,10) : null;

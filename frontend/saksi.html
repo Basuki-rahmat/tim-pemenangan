@@ -650,10 +650,10 @@ async function sc1Save(){
   if(!kat) return alert('Pilih kategori');
   if([dpt,hadir,sah,batal].some(v=>isNaN(v))) return alert('Isi DPT, Hadir, Sah, Batal');
   if(hadir>dpt) return alert(`Hadir ${hadir} > DPT ${dpt}`);
-  if(sah+batal!==hadir){
+  if(sah+batal > hadir){
     const expect=sah+batal;
-    if(confirm(`Hadir (${hadir}) ≠ Sah (${sah}) + Batal (${batal}) = ${expect}\n\nPerbaiki otomatis jadi Hadir = ${expect}?`)){
-      $('sc1Hadir').value=expect; if(typeof sc1Calc==='function') sc1Calc(); hadir=expect;
+    if(confirm(`Sah ${sah}+Batal ${batal}=${sah+batal} > Hadir ${hadir}\n\nNaikkan Hadir jadi ${sah+batal}?`)){
+      $('sc1Hadir').value=sah+batal; if(typeof sc1Calc==='function') sc1Calc(); hadir=sah+batal;
     } else return;
   }
   if(hadir > dpt){ alert(`Setelah diperbaiki, Hadir ${hadir} > DPT ${dpt} — cek DPT`); return; }
