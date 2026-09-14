@@ -438,6 +438,7 @@
         <button class="tab-btn" data-admin id="tabAbsensiBtn" onclick="switchTab('absensi')">✅ Absensi Saksi</button>
         <button class="tab-btn" data-admin id="tabDanaBtn" onclick="switchTab('dana')">💰 Dana Saksi</button>
         <button class="tab-btn" data-admin id="tabC1Btn" onclick="switchTab('c1')">📝 Form C1</button>
+        <button class="tab-btn" data-admin id="tabPetaBtn" onclick="switchTab('peta')">🗺️ Peta Sebaran</button>
       </div>
     </nav>
     <div class="side-footer">
@@ -1122,6 +1123,44 @@
       </div>
     </div>
 
+    <!-- TAB: PETA SEBARAN -->
+    <div id="tabPeta" class="tab-content">
+      <div class="card" id="pLoginCard" style="max-width:420px; margin:0 auto 20px;">
+        <h2>🔐 Area Admin</h2>
+        <p style="font-size:13px; color:var(--muted);">Login dulu untuk melihat Peta Sebaran.</p>
+        <button class="btn btn-primary" onclick="switchTab('admin')">Ke Halaman Login</button>
+      </div>
+      <div id="pBody" style="display:none;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:200px;">
+            <h2 style="font-size:18px; font-weight:900; letter-spacing:-.5px; display:flex; align-items:center; gap:8px; margin:0; border:none; padding:0;">🗺️ Peta Sebaran — Pemilik Sementara Wilayah</h2>
+            <p style="font-size:12.5px; color:var(--muted); margin-top:4px; font-weight:600;">Warna marker = kandidat dengan suara terbanyak di TPS tsb • Klik marker untuk detail</p>
+          </div>
+          <button class="btn btn-ghost" onclick="pLoad()" style="padding:9px 14px;">🔄 Refresh</button>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+            <div style="flex:1; min-width:150px;"><label style="font-size:11.5px; font-weight:700;">Kategori Pemilihan</label><select id="pFKat" onchange="pKatChanged()"><option value="">— Semua —</option></select></div>
+            <div style="flex:1; min-width:150px;"><label style="font-size:11.5px; font-weight:700;">Pemenang Kandidat</label><select id="pFKandidat" onchange="pLoad()"><option value="">— Semua Kandidat —</option></select></div>
+            <div style="flex:0 0 auto; padding-bottom:2px;"><label style="font-size:11.5px; font-weight:700; display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="pFOnlyIn" onchange="pLoad()" /> Hanya TPS yang sudah masuk</label></div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+          <div class="metric-card" style="flex:1; min-width:120px;"><div class="title">📍 TPS di Peta</div><div class="value" id="pTotal">—</div></div>
+          <div class="metric-card" style="flex:1; min-width:120px;"><div class="title">✅ Sudah Masuk</div><div class="value" id="pMasuk">—</div><div class="desc" id="pMasukPct"></div></div>
+          <div class="metric-card" style="flex:1; min-width:120px;"><div class="title">🗳️ Total Suara Sah</div><div class="value" id="pSah">—</div></div>
+        </div>
+
+        <div id="pLegend" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;"></div>
+
+        <div class="card" style="padding:0; overflow:hidden;">
+          <div id="sebaranMap" style="width:100%; height:520px;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- TAB 4: DASHBOARD ADMIN -->
     <div id="tabDashAdmin" class="tab-content active">
       <div class="card" id="aLoginCard" style="max-width: 420px; margin: 0 auto 20px;">
@@ -1254,8 +1293,8 @@
     }
 
     function switchTab(tab) {
-      const tabs = ['admin', 'dashadmin', 'kandidat', 'dapil', 'tps', 'saksi', 'absensi', 'dana', 'c1'];
-      const titles = { admin: 'Admin', dashadmin: 'DashAdmin', kandidat: 'Kandidat', dapil: 'Dapil', tps: 'Tps', saksi: 'Saksi', absensi: 'Absensi', dana: 'Dana', c1: 'C1' };
+      const tabs = ['admin', 'dashadmin', 'kandidat', 'dapil', 'tps', 'saksi', 'absensi', 'dana', 'c1', 'peta'];
+      const titles = { admin: 'Admin', dashadmin: 'DashAdmin', kandidat: 'Kandidat', dapil: 'Dapil', tps: 'Tps', saksi: 'Saksi', absensi: 'Absensi', dana: 'Dana', c1: 'C1', peta: 'Peta' };
       tabs.forEach((t) => {
         const name = titles[t];
         $('tab' + name).classList.toggle('active', t === tab);
@@ -1271,6 +1310,7 @@
       if (tab === 'absensi') abInit();
       if (tab === 'dana') dnInit();
       if (tab === 'c1') c1Init();
+      if (tab === 'peta') pInit();
     }
 
     // Auto-refresh dashboard admin setiap 4 detik bila tab aktif + sudah login
@@ -1321,6 +1361,8 @@
       $('dnBody').style.display = 'none';
       $('c1LoginCard').style.display = '';
       $('c1Body').style.display = 'none';
+      $('pLoginCard').style.display = '';
+      $('pBody').style.display = 'none';
       if (msg) {
         $('wLoginMsg').innerHTML = `<span class="err" style="color: var(--err);">${wEsc(msg)}</span>`;
       }
@@ -3991,6 +4033,176 @@
 
     function aPage(delta) {
       aTrx(aOffset + delta * A_LIMIT);
+    }
+
+    // ================= PETA SEBARAN (Pemilik Sementara Wilayah) =================
+    let pMap = null, pLayer = null;
+    const PETA_PALETTE = [
+      '#2563eb', '#059669', '#d97706', '#7c3aed', '#dc2626',
+      '#0891b2', '#4f46e5', '#db2777', '#ea580c', '#0d9488'
+    ];
+    let pCandidateColor = {}; // kandidat_id -> warna
+    let pCandidateOrder = []; // daftar kandidat (no_urut asc)
+
+    async function pInit() {
+      if (!wToken()) {
+        $('pLoginCard').style.display = '';
+        $('pBody').style.display = 'none';
+        return;
+      }
+      await wFetchJSON(`${location.origin}/api/auth/me`).catch(() => {
+        localStorage.removeItem('c1_admin_token');
+        $('pLoginCard').style.display = '';
+        $('pBody').style.display = 'none';
+        throw new Error('Sesi berakhir');
+      });
+      $('pLoginCard').style.display = 'none';
+      $('pBody').style.display = '';
+      await pMapBuild();
+      await Promise.all([pLoadKategori(), pLoadKandidat()]);
+      await pLoad();
+    }
+
+    function pColorFor(kandidatId) {
+      if (pCandidateColor[kandidatId]) return pCandidateColor[kandidatId];
+      return '#94a3b8';
+    }
+
+    function pLegendHTML() {
+      if (!pCandidateOrder.length) return '<span class="badge" style="background:#fff; border-color:var(--border); color:var(--muted);">Belum ada kandidat — pilih kategori</span>';
+      return pCandidateOrder.map((k) => {
+        const sw = pColorFor(k.id);
+        return `<span class="badge" style="background:#fff; border-color:var(--border); display:inline-flex; align-items:center; gap:6px;">
+          <span style="width:12px; height:12px; border-radius:999px; background:${sw}; box-shadow:0 0 0 3px ${sw}22;"></span>
+          ${wEsc(k.no_urut ?? '')}. ${wEsc(k.nama)}
+        </span>`;
+      }).join(' ');
+    }
+
+    async function pLoadKategori() {
+      const kat = await wFetchJSON(`${KAPI}/kategori`);
+      const cur = $('pFKat').value;
+      $('pFKat').innerHTML = '<option value="">— Semua —</option>' + kat.data.map((r) =>
+        `<option value="${wEsc(r.id)}">${wEsc(r.id)} — ${wEsc(r.nama_pemilihan)}</option>`).join('');
+      if ([...$('pFKat').options].some((o) => o.value === cur)) $('pFKat').value = cur;
+    }
+
+    async function pLoadKandidat() {
+      const kat = $('pFKat').value;
+      const d = await wFetchJSON(`${KAPI}/list?kategori_pemilihan_id=${encodeURIComponent(kat || '')}&limit=200`);
+      pCandidateOrder = d.data.sort((a, b) => (a.no_urut || 0) - (b.no_urut || 0));
+      pCandidateColor = {};
+      pCandidateOrder.forEach((k, i) => { pCandidateColor[k.id] = PETA_PALETTE[i % PETA_PALETTE.length]; });
+      const cur = $('pFKandidat').value;
+      $('pFKandidat').innerHTML = '<option value="">— Semua Kandidat —</option>' + pCandidateOrder.map((k) =>
+        `<option value="${wEsc(k.id)}">${wEsc(k.no_urut ?? '')}. ${wEsc(k.nama)}${k.partai ? ' (' + wEsc(k.partai) + ')' : ''}</option>`).join('');
+      if ([...$('pFKandidat').options].some((o) => o.value === cur)) $('pFKandidat').value = cur;
+      $('pLegend').innerHTML = pLegendHTML();
+    }
+
+    async function pMapBuild() {
+      const el = $('sebaranMap');
+      if (typeof L === 'undefined') {
+        el.innerHTML = '<p style="color:var(--err); font-size:13px; padding:12px;">Peta butuh internet (CDN Leaflet).</p>';
+        return;
+      }
+      if (pMap) { setTimeout(() => pMap.invalidateSize(), 100); return; }
+      pMap = L.map('sebaranMap').setView([-4.95, 105.25], 8);
+      const jalan = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' });
+      const satelit = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: '&copy; Esri World Imagery' });
+      const labelSatelit = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+      const satelitPlusLabel = L.layerGroup([satelit, labelSatelit]);
+      jalan.addTo(pMap);
+      const controls = L.control.layers({ '🗺️ Peta Jalan': jalan, '🛰️ Satelit': satelitPlusLabel }, {});
+      controls.addTo(pMap);
+    }
+
+    async function pKatChanged() {
+      $('pFKandidat').innerHTML = '<option value="">— Semua Kandidat —</option>';
+      await pLoadKandidat();
+      await pLoad();
+    }
+
+    async function pLoad() {
+      if (!pMap) return;
+      const kat = $('pFKat').value;
+      const kand = $('pFKandidat').value;
+      try {
+        const params = new URLSearchParams();
+        if (kat) params.set('kategori_pemilihan_id', kat);
+        const d = await wFetchJSON(`${location.origin}/api/c1/sebaran?${params.toString()}`);
+
+        // render pementang/pemilik sementara per kategori via detail_suara
+        const meta = new Map(); // kandidat_id -> {nama, no_urut}
+        pCandidateOrder.forEach((k) => meta.set(k.id, k));
+
+        let pts = d.data;
+        if (kand) pts = pts.filter((x) => x.pemenang && x.pemenang.kandidat_id === kand);
+        if ($('pFOnlyIn').checked) pts = pts.filter((x) => x.status === 'masuk');
+
+        // statistik
+        const masuk = pts.filter((x) => x.status === 'masuk');
+        const sah = masuk.reduce((a, x) => a + x.total_suara_sah, 0);
+        $('pTotal').textContent = fmtID(pts.length);
+        $('pMasuk').textContent = fmtID(masuk.length);
+        $('pMasukPct').textContent = pts.length ? `(${((masuk.length / pts.length) * 100).toFixed(1)}%) dari peta` : '';
+        $('pSah').textContent = fmtID(sah);
+
+        // marker
+        if (pLayer) { pMap.removeLayer(pLayer); }
+        const group = [];
+        pts.forEach((tps, i) => {
+          const pemenang = tps.pemenang || null;
+          const color = pemenang ? pColorFor(pemenang.kandidat_id) : '#94a3b8';
+          const masukFlag = tps.status === 'masuk';
+          let popup = `<div style="min-width:220px; font-size:12.5px; line-height:1.5;">
+            <div style="font-weight:900; font-size:13.5px; margin-bottom:2px;">TPS ${wEsc(tps.no_tps)} • ${wEsc(tps.kelurahan || '-')}</div>
+            <div style="color:var(--muted); font-size:11.5px; margin-bottom:6px;">${wEsc(tps.kecamatan || '-')} • ${wEsc(tps.kota || '-')} • <span style="font-family:monospace;">${wEsc(tps.tps_id)}</span></div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
+              <span class="badge" style="background:${masukFlag ? 'var(--ok-soft)' : '#f1f5f9'}; border-color:${masukFlag ? '#a7f3d0' : 'var(--border)'}; color:${masukFlag ? 'var(--ok)' : '#64748b'};">${masukFlag ? '✅ Masuk' : '⏳ Belum'}</span>
+              <span class="badge" style="background:#fff; border-color:var(--border);">DPT ${fmtID(tps.jumlah_pemilih)}</span>
+              <span class="badge" style="background:#fff; border-color:var(--border);">Sah ${fmtID(tps.total_suara_sah)}</span>
+            </div>`;
+          if (tps.suara_per_kandidat && tps.suara_per_kandidat.length) {
+            popup += `<table style="width:100%; border-collapse:collapse; font-size:12px;">
+              <tr style="background:#f8fafc;"><th style="padding:4px 6px; text-align:left;">Kandidat</th><th style="padding:4px 6px; text-align:right;">Suara</th></tr>`;
+            tps.suara_per_kandidat.forEach((s) => {
+              const isWin = pemenang && s.kandidat_id === pemenang.kandidat_id;
+              popup += `<tr style="${isWin ? 'background:#f0fdf4; font-weight:800;' : ''}">
+                <td style="padding:3px 6px; border-top:1px solid #f1f5f9;">${wEsc(s.no_urut ?? '')}. ${wEsc(s.nama_kandidat)}${isWin ? ' 🏆' : ''}</td>
+                <td style="padding:3px 6px; border-top:1px solid #f1f5f9; text-align:right;">${fmtID(s.jumlah_suara)}</td></tr>`;
+            });
+            popup += `</table>`;
+          } else {
+            popup += `<div style="color:var(--muted); font-size:11.5px;">Belum ada rincian suara</div>`;
+          }
+          popup += `</div>`;
+
+          // radius proporsional pada jumlah suara sah (skala manual untuk 27k TPS)
+          const r = !masukFlag ? 5 : Math.max(6, Math.min(16, 6 + Math.sqrt(tps.total_suara_sah) / 2));
+          const m = L.circleMarker([tps.lat, tps.lng], {
+            radius: r,
+            color: '#fff',
+            weight: 1,
+            fillColor: color,
+            fillOpacity: masukFlag ? 0.9 : 0.45
+          }).bindPopup(popup);
+          group.push(m);
+        });
+        pLayer = L.layerGroup(group);
+        pLayer.addTo(pMap);
+
+        if (pts.length) {
+          pMap.fitBounds(L.latLngBounds(pts.map((x) => [x.lat, x.lng])), { padding: [24, 24], maxZoom: 13 });
+        } else {
+          pMap.setView([-4.95, 105.25], 8);
+        }
+      } catch (err) {
+        $('pTotal').textContent = '—';
+        $('pMasuk').textContent = '—';
+        $('pSah').textContent = '—';
+        console.error('pLoad gagal:', err.message);
+      }
     }
 
     wRefreshAuthUI();

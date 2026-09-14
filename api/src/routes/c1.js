@@ -236,4 +236,99 @@ router.get('/rekapitulasi', async (req, res) => {
   }
 });
 
+// ----------------------------------------------------------------------------
+// Peta Sebaran: marker per TPS (warna = kandidat pemenang TPS tsb), filter kandidat.
+// "Pemilik sementara" = kandidat dengan suara terbanyak di sebuah wilayah/TPS.
+// ----------------------------------------------------------------------------
+router.get('/sebaran', async (req, res) => {
+  const t0 = Date.now();
+  const kategoriId = req.query.kategori_pemilihan_id || null;
+  const kandidatId = req.query.kandidat_id || null;
+
+  try {
+    // Ambil TPS ber-GPS + transaksi C1 TERBARU per TPS (demi presisi bila ada revisi)
+    const [tpsRows] = await readPool.query(
+      `SELECT t.id AS tps_id, t.lat, t.lng, t.no_tps, t.kelurahan, t.kecamatan, t.kota, t.jumlah_pemilih,
+              tx.id AS tx_id, tx.total_suara_sah, tx.total_suara_tidak_sah, tx.created_at
+         FROM master_tps t
+         LEFT JOIN transaksi_c1 tx
+           ON tx.tps_id = t.id
+          AND (? IS NULL OR tx.kategori_pemilihan_id = ?)
+          AND tx.created_at = (
+                SELECT MAX(c2.created_at) FROM transaksi_c1 c2
+                 WHERE c2.tps_id = t.id
+                   AND (? IS NULL OR c2.kategori_pemilihan_id = ?)
+              )
+        WHERE t.lat IS NOT NULL AND t.lng IS NOT NULL
+        ORDER BY t.id ASC`,
+      [kategoriId, kategoriId, kategoriId, kategoriId]
+    );
+
+    // Detail suara utk semua transaksi yg ketemu (hindari IN kosong)
+    const txIds = tpsRows.map((r) => r.tx_id).filter(Boolean);
+    const detailMap = {};
+    if (txIds.length) {
+      const [detailRows] = await readPool.query(
+        `SELECT d.transaksi_c1_id, d.kandidat_id, d.jumlah_suara,
+                COALESCE(k.nama, d.kandidat_id) AS nama_kandidat, k.no_urut
+           FROM detail_suara d
+           LEFT JOIN master_kandidat k ON k.id = d.kandidat_id
+          WHERE d.transaksi_c1_id IN (?)
+          ORDER BY d.transaksi_c1_id ASC, d.jumlah_suara DESC`,
+        [txIds]
+      );
+      for (const d of detailRows) {
+        (detailMap[d.transaksi_c1_id] = detailMap[d.transaksi_c1_id] || []).push(d);
+      }
+    }
+
+    const data = tpsRows.map((t) => {
+      const suara = (detailMap[t.tx_id] || []).map((s) => ({
+        kandidat_id: s.kandidat_id,
+        nama_kandidat: s.nama_kandidat,
+        no_urut: s.no_urut,
+        jumlah_suara: Number(s.jumlah_suara)
+      }));
+      const pemenang = suara.length ? suara[0] : null;
+      return {
+        tps_id: t.tps_id,
+        lat: Number(t.lat),
+        lng: Number(t.lng),
+        no_tps: t.no_tps,
+        kelurahan: t.kelurahan,
+        kecamatan: t.kecamatan,
+        kota: t.kota,
+        jumlah_pemilih: Number(t.jumlah_pemilih || 0),
+        status: t.tx_id ? 'masuk' : 'belum',
+        total_suara_sah: Number(t.total_suara_sah || 0),
+        total_suara_tidak_sah: Number(t.total_suara_tidak_sah || 0),
+        created_at: t.created_at,
+        pemenang,
+        suara_per_kandidat: suara
+      };
+    });
+
+    // Filter kandidat: tampilkan TPS yg kandidat ini bertarung (punya suara).
+    // Warna marker dibedakan frontend: hijau = kandidas menang, abu = kalah.
+    let filtered = data;
+    if (kandidatId) {
+      filtered = data.filter((x) => x.suara_per_kandidat.some((s) => s.kandidat_id === kandidatId));
+    }
+
+    const tpsMasuk = filtered.filter((x) => x.status === 'masuk').length;
+    const totalSah = filtered.reduce((a, x) => a + (x.status === 'masuk' ? x.total_suara_sah : 0), 0);
+
+    res.json({
+      success: true,
+      elapsed_ms: Date.now() - t0,
+      source: `Read-Replica (${readHost})`,
+      total: filtered.length,
+      stats: { total_tps: filtered.length, tps_masuk: tpsMasuk, total_suara_sah: totalSah },
+      data: filtered
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;
