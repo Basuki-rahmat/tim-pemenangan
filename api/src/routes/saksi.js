@@ -13,9 +13,37 @@
  */
 const { Router } = require('express');
 const { readPool, readHost, writePool } = require('../db');
-const { requireAdmin, hashPassword, genPassword } = require('../auth');
+const { requireAdmin, hashPassword, genPassword, verifyPassword, bearerToken } = require('../auth');
+const crypto = require('crypto');
 
 const router = Router();
+
+// --- Saksi session helpers (terpisah dari admin) ---
+const SAKSI_TTL_MS = 12*60*60*1000;
+function newSaksiToken(){ return crypto.randomBytes(32).toString('hex'); }
+async function createSaksiSession(saksiId){
+  const token=newSaksiToken();
+  const exp=new Date(Date.now()+SAKSI_TTL_MS);
+  await writePool.query('INSERT INTO saksi_sessions (token, saksi_id, expires_at) VALUES (?,?,?)', [token, saksiId, exp]);
+  return {token, expires_at:exp};
+}
+async function getSaksiSession(token){
+  if(!token) return null;
+  const [rows]=await writePool.query(`SELECT s.token, s.expires_at, w.id as saksi_id, w.nama, w.nik, w.username, w.tps_id FROM saksi_sessions s JOIN saksi w ON w.id=s.saksi_id WHERE s.token=? LIMIT 1`, [token]);
+  if(!rows.length) return null;
+  if(new Date(rows[0].expires_at).getTime() < Date.now()){
+    await writePool.query('DELETE FROM saksi_sessions WHERE token=?', [token]);
+    return null;
+  }
+  return rows[0];
+}
+async function requireSaksi(req,res,next){
+  try{
+    const sess=await getSaksiSession(bearerToken(req));
+    if(!sess) return res.status(401).json({success:false, error:'butuh login saksi'});
+    req.saksi=sess; next();
+  }catch(e){ res.status(500).json({success:false, error:e.message}); }
+}
 
 // Kolom aman (password_hash TIDAK PERNAH dikirim ke klien)
 const SAKSI_COLS = 'id, nama, nik, username, no_hp, tps_id, kandidat_id, keterangan, foto_ktp, bank, no_rekening, created_at';
@@ -41,6 +69,91 @@ function validRek(rek) {
   if (rek === undefined || rek === null || rek === '') return true;
   return /^[0-9]{8,20}$/.test(String(rek).trim());
 }
+
+// --- Saksi Auth (HP) ---
+router.post('/login', async (req,res)=>{
+  const t0=Date.now();
+  const login=String(req.body.username||req.body.nik||req.body.login||'').trim();
+  const pass=String(req.body.password||'');
+  if(!login||!pass) return res.status(400).json({success:false, error:'username/NIK dan password wajib'});
+  try{
+    const [rows]=await writePool.query('SELECT id, nama, nik, username, password_hash, tps_id FROM saksi WHERE username=? OR nik=? LIMIT 1', [login, login]);
+    if(!rows.length || !verifyPassword(pass, rows[0].password_hash)){
+      await new Promise(r=>setTimeout(r,300));
+      return res.status(401).json({success:false, error:'username/NIK atau password salah'});
+    }
+    const sess=await createSaksiSession(rows[0].id);
+    res.json({success:true, elapsed_ms:Date.now()-t0, data:{ id:rows[0].id, nama:rows[0].nama, nik:rows[0].nik, username:rows[0].username, tps_id:rows[0].tps_id, token:sess.token, expires_at:sess.expires_at }});
+  }catch(e){ res.status(500).json({success:false, error:e.message}); }
+});
+router.post('/logout', async (req,res)=>{
+  try{ const tok=bearerToken(req); if(tok) await writePool.query('DELETE FROM saksi_sessions WHERE token=?',[tok]); res.json({success:true}); }catch(e){ res.status(500).json({success:false, error:e.message}); }
+});
+router.get('/me', requireSaksi, async (req,res)=>{
+  try{
+    const [tpsRows]=await writePool.query(`SELECT t.id, t.no_tps, d.nama desa, k.nama kecamatan, kb.nama kabupaten FROM master_tps t LEFT JOIN desa d ON d.id=t.desa_id LEFT JOIN kecamatan k ON k.id=d.kecamatan_id LEFT JOIN kabupaten kb ON kb.id=k.kabupaten_id WHERE t.id=? LIMIT 1`, [req.saksi.tps_id]);
+    res.json({success:true, data:{ id:req.saksi.saksi_id, nama:req.saksi.nama, nik:req.saksi.nik, username:req.saksi.username, tps_id:req.saksi.tps_id, tps: tpsRows[0]||null, expires_at:req.saksi.expires_at }});
+  }catch(e){ res.status(500).json({success:false, error:e.message}); }
+});
+router.get('/dashboard', requireSaksi, async (req,res)=>{
+  const t0=Date.now();
+  try{
+    const sid=req.saksi.saksi_id;
+    const [abs]=await readPool.query('SELECT * FROM saksi_absensi WHERE saksi_id=? ORDER BY tanggal DESC LIMIT 5', [sid]);
+    const [dana]=await readPool.query('SELECT * FROM saksi_dana WHERE saksi_id=? ORDER BY id DESC LIMIT 5', [sid]);
+    const [[sum]]=await readPool.query('SELECT COALESCE(SUM(nominal),0) total, COALESCE(SUM(CASE WHEN status="CAIR" THEN nominal ELSE 0 END),0) cair FROM saksi_dana WHERE saksi_id=?', [sid]);
+    const [tpsRows]=await readPool.query(`SELECT t.*, d.nama desa, k.nama kecamatan, kb.nama kabupaten FROM master_tps t LEFT JOIN desa d ON d.id=t.desa_id LEFT JOIN kecamatan k ON k.id=d.kecamatan_id LEFT JOIN kabupaten kb ON kb.id=k.kabupaten_id WHERE t.id=? LIMIT 1`, [req.saksi.tps_id]);
+    res.json({success:true, elapsed_ms:Date.now()-t0, data:{ saksi:{id:sid, nama:req.saksi.nama, tps_id:req.saksi.tps_id}, tps: tpsRows[0]||null, absensi:abs, dana:dana, summary:{ total:Number(sum.total||0), cair:Number(sum.cair||0)} }});
+  }catch(e){ res.status(500).json({success:false, error:e.message}); }
+});
+// Saksi self absensi (kamera+GPS) & dana list
+router.get('/absensi', requireSaksi, async (req,res)=>{
+  try{
+    const [rows]=await readPool.query('SELECT * FROM saksi_absensi WHERE saksi_id=? ORDER BY tanggal DESC', [req.saksi.saksi_id]);
+    res.json({success:true, data:rows});
+  }catch(e){ res.status(500).json({success:false, error:e.message}); }
+});
+router.post('/absensi', requireSaksi, async (req,res)=>{
+  const t0=Date.now();
+  const status=String(req.body.status||'HADIR').trim().toUpperCase();
+  const tanggal=req.body.tanggal? String(req.body.tanggal).trim() : new Date().toISOString().slice(0,10);
+  const jam=req.body.jam_hadir? String(req.body.jam_hadir).trim().slice(0,8) : null;
+  const foto=req.body.foto_bukti? String(req.body.foto_bukti).trim().slice(0,512) : null;
+  const ket=req.body.keterangan? String(req.body.keterangan).trim().slice(0,256) : null;
+  let lat=req.body.lat!==undefined&&req.body.lat!==''&&req.body.lat!==null? Number(req.body.lat): null;
+  let lng=req.body.lng!==undefined&&req.body.lng!==''&&req.body.lng!==null? Number(req.body.lng): null;
+  const STAT=['HADIR','TIDAK','IZIN','SAKIT'];
+  if(!STAT.includes(status)) return res.status(400).json({success:false, error:'status '+STAT.join('/')});
+  if(status==='HADIR' && !foto) return res.status(400).json({success:false, error:'foto wajib kamera'});
+  if(status==='HADIR' && (lat===null||lng===null)) return res.status(400).json({success:false, error:'GPS wajib'});
+  try{
+    const sid=req.saksi.saksi_id;
+    const [s]=await writePool.query('SELECT tps_id FROM saksi WHERE id=?', [sid]);
+    const tpsId=s[0].tps_id;
+    let jarak=null, valid=1;
+    if(lat!==null && lng!==null){
+      const [tps]=await writePool.query('SELECT lat,lng FROM master_tps WHERE id=?', [tpsId]);
+      const tLat=tps[0]?.lat, tLng=tps[0]?.lng;
+      if(tLat!=null && tLng!=null){
+        const R=6371000, toRad=x=>x*Math.PI/180;
+        const dLat=toRad(lat-Number(tLat)), dLon=toRad(lng-Number(tLng));
+        const a=Math.sin(dLat/2)**2 + Math.cos(toRad(Number(tLat)))*Math.cos(toRad(lat))*Math.sin(dLon/2)**2;
+        jarak=Math.round(2*R*Math.asin(Math.sqrt(a)));
+        valid=jarak<=800?1:0;
+        if(!valid) return res.status(400).json({success:false, error:`GPS di luar radius TPS (${jarak}m)`});
+      }
+    }
+    const [r]=await writePool.query('INSERT INTO saksi_absensi (saksi_id,tps_id,tanggal,status,jam_hadir,foto_bukti,lat,lng,jarak_meter,is_gps_valid,keterangan) VALUES (?,?,?,?,?,?,?,?,?,?,?)', [sid,tpsId,tanggal,status,jam,foto,lat,lng,jarak,valid,ket]);
+    const [rows]=await writePool.query('SELECT * FROM saksi_absensi WHERE id=?', [r.insertId]);
+    res.status(201).json({success:true, elapsed_ms:Date.now()-t0, data:rows[0]});
+  }catch(e){
+    if(e.code==='ER_DUP_ENTRY') return res.status(409).json({success:false, error:'Sudah absen tgl ini'});
+    res.status(500).json({success:false, error:e.message});
+  }
+});
+router.get('/dana-list', requireSaksi, async (req,res)=>{
+  try{ const [rows]=await readPool.query('SELECT * FROM saksi_dana WHERE saksi_id=? ORDER BY id DESC', [req.saksi.saksi_id]); res.json({success:true, data:rows}); }catch(e){ res.status(500).json({success:false, error:e.message}); }
+});
 
 router.get('/', async (req, res) => {
   const t0 = Date.now();

@@ -428,11 +428,14 @@
         <button class="tab-btn" data-admin id="tabDapilBtn" onclick="switchTab('dapil')">🗺️ Dapil</button>
         <button class="tab-btn" data-admin id="tabTpsBtn" onclick="switchTab('tps')">📍 Master TPS</button>
         <button class="tab-btn" data-admin id="tabSaksiBtn" onclick="switchTab('saksi')">👥 Registrasi Saksi</button>
+        <button class="tab-btn" data-admin id="tabAbsensiBtn" onclick="switchTab('absensi')">✅ Absensi Saksi</button>
+        <button class="tab-btn" data-admin id="tabDanaBtn" onclick="switchTab('dana')">💰 Dana Saksi</button>
       </div>
     </nav>
     <div class="side-footer">
       <span id="sideUser">🔓 Belum login</span>
       <button class="btn btn-ghost" id="sideAuthBtn" onclick="sideAuth()">Masuk</button>
+      <a href="/saksi.html" target="_blank" class="btn btn-ghost" style="text-align:center; font-size:11px; background:rgba(255,255,255,.06);">📱 Dashboard Saksi (mobile bottom nav)</a>
     </div>
   </aside>
   <div class="overlay" id="overlay" onclick="toggleSidebar(false)"></div>
@@ -840,6 +843,171 @@
       </div>
     </div>
 
+    <!-- TAB 8: ABSENSI SAKSI -->
+    <div id="tabAbsensi" class="tab-content">
+      <div class="card" id="abLoginCard" style="max-width: 420px; margin: 0 auto 20px;">
+        <h2>🔐 Area Admin</h2>
+        <p style="font-size: 13px; color: var(--muted);">Silakan login dulu untuk kelola absensi saksi.</p>
+        <button class="btn btn-primary" onclick="switchTab('admin')">Ke Halaman Login</button>
+      </div>
+      <div id="abBody" style="display:none;">
+        <div class="metric-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px,1fr));">
+          <div class="metric-card"><div class="title">Hadir</div><div class="value" id="abHadir">0</div><div class="desc">Hari ini</div></div>
+          <div class="metric-card"><div class="title">Tidak Hadir</div><div class="value" id="abTidak">0</div><div class="desc">TIDAK</div></div>
+          <div class="metric-card"><div class="title">Izin/Sakit</div><div class="value" id="abIzin">0</div><div class="desc">IZIN+SAKIT</div></div>
+          <div class="metric-card"><div class="title">Total Absen</div><div class="value" id="abTotal">0</div><div class="desc">Semua tanggal</div></div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <h2>Form Absensi Saksi</h2>
+          <div class="row2" style="grid-template-columns: 1fr 1fr; margin-top:10px;">
+            <div><label>Saksi * (cari nama/NIK)</label>
+              <input id="abFSaksiSearch" placeholder="ketik Nama atau NIK..." list="abSaksiList" autocomplete="off" oninput="abSearchSaksi()" />
+              <datalist id="abSaksiList"></datalist>
+              <input type="hidden" id="abFSaksiId" />
+              <div id="abSaksiInfo" style="font-size:11px; color:var(--muted); margin-top:4px; min-height:16px;"></div>
+            </div>
+            <div><label>Tanggal *</label><input id="abFTgl" type="date" /></div>
+          </div>
+          <div class="row2" style="margin-top:10px;">
+            <div><label>Status *</label><select id="abFStatus"><option>HADIR</option><option>TIDAK</option><option>IZIN</option><option>SAKIT</option></select></div>
+            <div><label>Jam Hadir (opsional)</label><input id="abFJam" type="time" /></div>
+          </div>
+          <div class="row2" style="margin-top:10px;">
+            <div>
+              <label>Foto Bukti * <span style="font-weight:400; text-transform:none; color:var(--muted); font-size:11px;">wajib kamera HP saksi</span></label>
+              <div id="abCamBox" style="border:1.5px dashed #cbd5e1; border-radius:12px; padding:10px; background:#f8fafc;">
+                <video id="abCamVideo" autoplay playsinline muted style="display:none; width:100%; border-radius:10px; background:#000; max-height:260px; object-fit:cover;"></video>
+                <canvas id="abCamCanvas" style="display:none;"></canvas>
+                <img id="abFotoPrev" style="display:none; width:100%; border-radius:10px; border:1px solid var(--border); cursor:pointer; max-height:260px; object-fit:contain; background:#fff;" alt="bukti" onclick="if(this.src) sOpenKtp(this.src,'Bukti Absensi')" />
+                <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+                  <button type="button" class="btn btn-ghost" id="abCamOpenBtn" onclick="abCamOpen()">📷 Buka Kamera HP</button>
+                  <button type="button" class="btn btn-ghost" id="abCamSnapBtn" onclick="abCamSnap()" style="display:none; background:var(--brand); color:#fff; border-color:var(--brand);">📸 Ambil Foto</button>
+                  <button type="button" class="btn btn-ghost" id="abCamCloseBtn" onclick="abCamClose()" style="display:none;">✖ Tutup</button>
+                  <button type="button" class="btn btn-ghost" id="abCamRetakeBtn" onclick="abCamRetake()" style="display:none;">🔄 Foto Ulang</button>
+                </div>
+                <div class="k-foto-statline" style="margin-top:8px;"><span id="abFotoStat">Belum ada foto — wajib ambil via kamera HP saksi (bukan galeri)</span></div>
+                <div id="abGpsBox" style="margin-top:8px; padding:8px 10px; border-radius:9px; border:1px solid #e2e8f0; background:#fff; font-size:11px; color:var(--muted); display:none;">
+                  <div style="font-weight:800; color:var(--text); font-size:11px; text-transform:uppercase; letter-spacing:.4px;">📍 GPS Saksi → TPS</div>
+                  <div id="abGpsStat" style="margin-top:4px;">Menunggu foto...</div>
+                  <div id="abGpsDetail" style="font-family:monospace; font-size:10.5px; margin-top:4px; color:#334155;"></div>
+                </div>
+              </div>
+              <!-- file input hidden fallback (capture) - tidak dipakai, hanya kompat -->
+              <input id="abFFoto" type="file" accept="image/*" capture="environment" style="display:none;" onchange="abFotoChange()" />
+              <input type="hidden" id="abFotoUrl" value="" />
+              <input type="hidden" id="abFLat" value="" />
+              <input type="hidden" id="abFLng" value="" />
+              <input type="hidden" id="abFJarak" value="" />
+            </div>
+            <div><label>Keterangan</label><textarea id="abFKet" rows="3" placeholder="opsional" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:11px;background:#f8fafc;font-size:14px;resize:vertical;min-height:78px;"></textarea>
+              <p style="font-size:11px; color:var(--muted); margin-top:6px;">Foto diambil langsung via kamera HP, GPS otomatis tercapture dan diverifikasi radius TPS.</p>
+            </div>
+          </div>
+          <input type="hidden" id="abFEditId" value="" />
+          <div style="display:flex; gap:10px; margin-top:12px;">
+            <button class="btn btn-ghost" onclick="abSave()">💾 Simpan Absensi</button>
+            <button class="btn btn-ghost" onclick="abCancel()">Batal</button>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <h2>Daftar Absensi</h2>
+            <span id="abTotalBadge" class="badge">0 data</span>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+            <input id="abFSearch" placeholder="Cari nama/NIK/TPS..." style="flex:2; min-width:160px;" oninput="abLoad(0)" />
+            <input id="abFFilterTgl" type="date" style="flex:1; min-width:140px;" onchange="abLoad(0)" />
+            <select id="abFFilterStat" style="flex:1; min-width:120px;" onchange="abLoad(0)"><option value="">— Semua Status —</option><option>HADIR</option><option>TIDAK</option><option>IZIN</option><option>SAKIT</option></select>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="audit-table">
+              <thead><tr><th>Saksi</th><th>NIK</th><th>TPS</th><th>Desa/Kec</th><th>Tanggal</th><th>Status</th><th>Jam</th><th>GPS</th><th>Bukti</th><th>Aksi</th></tr></thead>
+              <tbody id="abBodyRows"></tbody>
+            </table>
+          </div>
+          <div id="abCards" class="kand-cards" style="margin-top:12px;"></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; gap:8px;">
+            <button class="btn btn-ghost" onclick="abPage(-1)">← Sebelumnya</button>
+            <span id="abPageInfo" class="badge">0 data</span>
+            <button class="btn btn-ghost" onclick="abPage(1)">Berikutnya →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 9: DANA SAKSI -->
+    <div id="tabDana" class="tab-content">
+      <div class="card" id="dnLoginCard" style="max-width: 420px; margin: 0 auto 20px;">
+        <h2>🔐 Area Admin</h2>
+        <p style="font-size: 13px; color: var(--muted);">Silakan login dulu untuk kelola dana saksi.</p>
+        <button class="btn btn-primary" onclick="switchTab('admin')">Ke Halaman Login</button>
+      </div>
+      <div id="dnBody" style="display:none;">
+        <div class="metric-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px,1fr));">
+          <div class="metric-card"><div class="title">Total Dana</div><div class="value" id="dnTotal">Rp 0</div><div class="desc" id="dnJml">0 transaksi</div></div>
+          <div class="metric-card"><div class="title">Sudah Cair</div><div class="value" id="dnCair" style="color:var(--ok);">Rp 0</div><div class="desc">Status CAIR</div></div>
+          <div class="metric-card"><div class="title">Pending</div><div class="value" id="dnPending">Rp 0</div><div class="desc">PENDING+PROSES</div></div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <h2>Form Dana / Honor Saksi</h2>
+          <div class="row2" style="margin-top:10px;">
+            <div><label>Saksi * (cari nama/NIK)</label>
+              <input id="dnFSaksiSearch" placeholder="ketik Nama atau NIK..." list="dnSaksiList" autocomplete="off" oninput="dnSearchSaksi()" />
+              <datalist id="dnSaksiList"></datalist>
+              <input type="hidden" id="dnFSaksiId" />
+              <div id="dnSaksiInfo" style="font-size:11px; color:var(--muted); margin-top:4px; min-height:16px;"></div>
+            </div>
+            <div><label>Nominal (IDR) *</label><input id="dnFNominal" type="number" min="1" placeholder="mis. 150000" /></div>
+          </div>
+          <div class="row2" style="margin-top:10px;">
+            <div><label>Bank / E-Wallet</label><select id="dnFBank"><option value="">— Ikut data saksi —</option><option>BCA</option><option>BRI</option><option>BNI</option><option>MANDIRI</option><option>BSI</option><option>CIMB NIAGA</option><option>DANAMON</option><option>PERMATA</option><option>BTN</option><option>BTPN</option><option>JENIUS</option><option>SEABANK</option><option>BANK JAGO</option><option>DANA</option><option>OVO</option><option>GOPAY</option><option>SHOPEEPAY</option><option>LINKAJA</option><option>LAINNYA</option></select></div>
+            <div><label>No. Rekening / E-Wallet</label><input id="dnFRek" placeholder="opsional, kosong=ikut saksi" inputmode="numeric" /></div>
+          </div>
+          <div class="row2" style="margin-top:10px;">
+            <div><label>Status</label><select id="dnFStatus"><option>PENDING</option><option>PROSES</option><option>CAIR</option><option>BATAL</option></select></div>
+            <div><label>Tanggal Cair</label><input id="dnFTglCair" type="date" /></div>
+          </div>
+          <div class="row2" style="margin-top:10px;">
+            <div>
+              <label>Bukti Transfer (auto compress)</label>
+              <input id="dnFFoto" type="file" accept="image/*" onchange="dnFotoChange()" />
+              <div class="k-foto-statline"><span id="dnFotoStat">Belum pilih bukti</span></div>
+              <img id="dnFotoPrev" style="display:none; max-width:140px; border-radius:12px; margin-top:8px; border:1px solid var(--border); box-shadow:var(--shadow-sm); cursor:pointer;" alt="bukti" onclick="if(this.src) sOpenKtp(this.src,'Bukti TF')" />
+              <input type="hidden" id="dnFotoUrl" value="" />
+            </div>
+            <div><label>Keterangan</label><textarea id="dnFKet" rows="3" placeholder="opsional" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:11px;background:#f8fafc;font-size:14px;resize:vertical;min-height:78px;"></textarea></div>
+          </div>
+          <input type="hidden" id="dnFEditId" value="" />
+          <div style="display:flex; gap:10px; margin-top:12px;">
+            <button class="btn btn-ghost" onclick="dnSave()">💾 Simpan Dana</button>
+            <button class="btn btn-ghost" onclick="dnCancel()">Batal</button>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <h2>Daftar Dana Saksi</h2>
+            <span id="dnTotalBadge" class="badge">0 data</span>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+            <input id="dnFSearch" placeholder="Cari nama/NIK/bank..." style="flex:2; min-width:160px;" oninput="dnLoad(0)" />
+            <select id="dnFFilterStat" style="flex:1; min-width:130px;" onchange="dnLoad(0)"><option value="">— Semua Status —</option><option>PENDING</option><option>PROSES</option><option>CAIR</option><option>BATAL</option></select>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="audit-table">
+              <thead><tr><th>Saksi</th><th>TPS</th><th>Desa/Kec</th><th>Nominal</th><th>Bank</th><th>No Rek</th><th>Status</th><th>Tgl Cair</th><th>Bukti</th><th>Aksi</th></tr></thead>
+              <tbody id="dnBodyRows"></tbody>
+            </table>
+          </div>
+          <div id="dnCards" class="kand-cards" style="margin-top:12px;"></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; gap:8px;">
+            <button class="btn btn-ghost" onclick="dnPage(-1)">← Sebelumnya</button>
+            <span id="dnPageInfo" class="badge">0 data</span>
+            <button class="btn btn-ghost" onclick="dnPage(1)">Berikutnya →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- TAB 4: DASHBOARD ADMIN -->
     <div id="tabDashAdmin" class="tab-content active">
       <div class="card" id="aLoginCard" style="max-width: 420px; margin: 0 auto 20px;">
@@ -868,6 +1036,24 @@
           <div class="metric-card"><div class="title">❌ Tidak Sah</div><div class="value" id="aTidak">0</div><div class="desc" id="aTidakPct">—</div></div>
           <div class="metric-card"><div class="title">⏳ Backlog Antrean</div><div class="value" id="aBacklog">0</div><div class="desc">Waiting + Active</div></div>
           <div class="metric-card"><div class="title">⚠️ Job Gagal</div><div class="value" id="aFail">0</div><div class="desc">BullMQ failed</div></div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px; border-left:4px solid var(--ok);">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <h2 style="margin:0; border:none; padding:0;">✅ Absensi Saksi Hari Ini</h2>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <span class="badge" id="aAbDate" style="background:#fff;">—</span>
+              <button class="btn btn-ghost" onclick="switchTab('absensi')" style="padding:6px 10px; font-size:11px;">Lihat Absensi →</button>
+            </div>
+          </div>
+          <div class="metric-grid" style="grid-template-columns:repeat(4,1fr); gap:10px; margin-top:12px; margin-bottom:0;">
+            <div class="metric-card" style="padding:12px;"><div class="title" style="font-size:10px;">🟢 Hadir</div><div class="value" id="aAbHadirDash" style="font-size:22px;">0</div><div class="desc">kamera+GPS valid</div></div>
+            <div class="metric-card" style="padding:12px;"><div class="title" style="font-size:10px;">🔴 Tidak</div><div class="value" id="aAbTidakDash" style="font-size:22px;">0</div><div class="desc">TIDAK</div></div>
+            <div class="metric-card" style="padding:12px;"><div class="title" style="font-size:10px;">🟡 Izin/Sakit</div><div class="value" id="aAbIzinDash" style="font-size:22px;">0</div><div class="desc">IZIN+SAKIT</div></div>
+            <div class="metric-card" style="padding:12px;"><div class="title" style="font-size:10px;">📊 Total</div><div class="value" id="aAbTotalDash" style="font-size:22px;">0</div><div class="desc">hari ini</div></div>
+          </div>
+          <div id="aAbGpsWarn" style="margin-top:10px; display:none; padding:8px 10px; border-radius:9px; background:#fef2f2; border:1px solid #fecaca; color:var(--err); font-size:12px; font-weight:700;"></div>
+          <div id="aAbList" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;"></div>
         </div>
 
         <div class="grid" style="grid-template-columns:1.1fr 0.9fr; gap:14px; margin-bottom:16px;">
@@ -954,8 +1140,8 @@
     }
 
     function switchTab(tab) {
-      const tabs = ['admin', 'dashadmin', 'kandidat', 'dapil', 'tps', 'saksi'];
-      const titles = { admin: 'Admin', dashadmin: 'DashAdmin', kandidat: 'Kandidat', dapil: 'Dapil', tps: 'Tps', saksi: 'Saksi' };
+      const tabs = ['admin', 'dashadmin', 'kandidat', 'dapil', 'tps', 'saksi', 'absensi', 'dana'];
+      const titles = { admin: 'Admin', dashadmin: 'DashAdmin', kandidat: 'Kandidat', dapil: 'Dapil', tps: 'Tps', saksi: 'Saksi', absensi: 'Absensi', dana: 'Dana' };
       tabs.forEach((t) => {
         const name = titles[t];
         $('tab' + name).classList.toggle('active', t === tab);
@@ -968,6 +1154,8 @@
       if (tab === 'dapil') dInit();
       if (tab === 'tps') tInit();
       if (tab === 'saksi') sInit();
+      if (tab === 'absensi') abInit();
+      if (tab === 'dana') dnInit();
     }
 
     // Auto-refresh dashboard admin setiap 4 detik bila tab aktif + sudah login
@@ -1012,6 +1200,10 @@
       $('tBodyWrap').style.display = 'none';
       $('sLoginCard').style.display = '';
       $('sBody').style.display = 'none';
+      $('abLoginCard').style.display = '';
+      $('abBody').style.display = 'none';
+      $('dnLoginCard').style.display = '';
+      $('dnBody').style.display = 'none';
       if (msg) {
         $('wLoginMsg').innerHTML = `<span class="err" style="color: var(--err);">${wEsc(msg)}</span>`;
       }
@@ -2702,6 +2894,414 @@
       }
     }
 
+    // ================= ABSENSI SAKSI =================
+    const ABAPI = location.origin + '/api/absensi';
+    let abOffset=0; const AB_LIMIT=15;
+    let abSaksiCache=[];
+    async function abInit(){
+      if(!wToken()){ $('abLoginCard').style.display=''; $('abBody').style.display='none'; return; }
+      try{ await wFetchJSON(`${location.origin}/api/auth/me`); $('abLoginCard').style.display='none'; $('abBody').style.display=''; if(!$('abFTgl').value) $('abFTgl').value=new Date().toISOString().slice(0,10); if(!$('abFFilterTgl').value) $('abFFilterTgl').value=new Date().toISOString().slice(0,10); abLoad(0); }catch(e){ localStorage.removeItem('c1_admin_token'); $('abLoginCard').style.display=''; $('abBody').style.display='none'; }
+    }
+    async function abSearchSaksi(){
+      const q=$('abFSaksiSearch').value.trim();
+      if(q.length<2){ $('abSaksiList').innerHTML=''; return; }
+      try{
+        const d=await wFetchJSON(`${SAPI}?search=${encodeURIComponent(q)}&limit=10`);
+        abSaksiCache=d.data;
+        $('abSaksiList').innerHTML=d.data.map(s=>`<option value="${wEsc(s.nama)} (${wEsc(s.nik)}) — TPS ${wEsc(s.tps_id)}"></option>`).join('');
+        // auto-detect exact pick
+        const exact=d.data.find(s=> `${s.nama} (${s.nik}) — TPS ${s.tps_id}`===q || `${s.nama} (${s.nik})`===q || s.nik===q);
+        if(exact){ $('abFSaksiId').value=exact.id; $('abSaksiInfo').textContent=`TPS ${exact.tps_id} • ${wEsc(exact.desa||'')}${exact.kecamatan?'/'+wEsc(exact.kecamatan):''} • ${wEsc(exact.kabupaten||'')}`; }
+        else if(q.includes('(')){ // try nik inside parens
+          const m=q.match(/\((\d{16})\)/); if(m){ const f=d.data.find(s=>s.nik===m[1]); if(f){ $('abFSaksiId').value=f.id; $('abSaksiInfo').textContent=`TPS ${f.tps_id} • ${f.nama}`; } }
+        }
+      }catch(e){}
+    }
+    // also handle picking via hidden id when input changes to exact
+    $('abFSaksiSearch')?.addEventListener('change', ()=>{
+      const v=$('abFSaksiSearch').value.trim();
+      const f=abSaksiCache.find(s=> `${s.nama} (${s.nik}) — TPS ${s.tps_id}`===v || `${s.nama} (${s.nik})`===v);
+      if(f){ $('abFSaksiId').value=f.id; $('abSaksiInfo').textContent=`TPS ${f.tps_id} • ${wEsc(f.desa||'')}`; } else { $('abFSaksiId').value=''; $('abSaksiInfo').textContent=''; }
+    });
+    // — Kamera HP saksi (wajib, bukan galeri) + GPS TPS —
+    let abStream=null, abCapturedBlob=null, abCapturedLat=null, abCapturedLng=null;
+    function abFotoChange(){
+      // blok galeri — harus via kamera
+      alert('Harap gunakan kamera HP saksi: klik “Buka Kamera HP” → “Ambil Foto”. Foto dari galeri tidak diizinkan agar GPS sesuai lokasi TPS.');
+      $('abFFoto').value='';
+      $('abFotoStat').textContent='Gunakan kamera HP saksi';
+    }
+    async function abCamOpen(){
+      const v=$('abCamVideo');
+      if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+        alert('Kamera tidak didukung browser ini. Aktifkan izin kamera atau gunakan HP Android/iOS terbaru.');
+        return;
+      }
+      if(!abSaksiCache.find(s=>String(s.id)===String($('abFSaksiId').value))){
+        const q=$('abFSaksiSearch').value.trim();
+        if(!q || !$('abFSaksiId').value) { alert('Pilih saksi dulu sebelum buka kamera (ketik Nama/NIK, pilih dari list).'); return; }
+      }
+      try{
+        abStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}}, audio:false});
+        v.srcObject=abStream; v.style.display=''; $('abFotoPrev').style.display='none';
+        $('abCamOpenBtn').style.display='none'; $('abCamSnapBtn').style.display=''; $('abCamCloseBtn').style.display=''; $('abCamRetakeBtn').style.display='none';
+        $('abFotoStat').textContent='Kamera aktif — arahkan ke saksi di depan TPS, pastikan wajah & background TPS terlihat, lalu “Ambil Foto”';
+        // GPS awal
+        $('abGpsBox').style.display=''; $('abGpsStat').textContent='Mengambil GPS...'; $('abGpsDetail').textContent='';
+        try{
+          const pos=await new Promise((res,rej)=> navigator.geolocation.getCurrentPosition(res, rej, {enableHighAccuracy:true, timeout:8000, maximumAge:0}));
+          abCapturedLat=pos.coords.latitude; abCapturedLng=pos.coords.longitude;
+          $('abFLat').value=abCapturedLat.toFixed(7); $('abFLng').value=abCapturedLng.toFixed(7);
+          await abUpdateGpsBox();
+        }catch(ge){ $('abGpsStat').textContent='⚠️ Gagal ambil GPS: '+ (ge.message||'izin lokasi ditolak'); $('abGpsStat').style.color='var(--err)'; }
+      }catch(e){
+        alert('Gagal buka kamera: '+(e.message||'izin kamera ditolak')+'\nTips: pakai HTTPS dan izinkan kamera di pengaturan browser HP.');
+      }
+    }
+    function abCamClose(){
+      if(abStream){ abStream.getTracks().forEach(t=>t.stop()); abStream=null; }
+      $('abCamVideo').style.display='none'; $('abCamVideo').srcObject=null;
+      $('abCamOpenBtn').style.display=''; $('abCamSnapBtn').style.display='none'; $('abCamCloseBtn').style.display='none';
+      if(!abCapturedBlob){ $('abFotoStat').textContent='Kamera ditutup — belum ada foto'; }
+    }
+    function abHaversine(lat1,lon1,lat2,lon2){
+      const R=6371000, toRad=x=>x*Math.PI/180;
+      const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+      const a=Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+      return 2*R*Math.asin(Math.sqrt(a));
+    }
+    async function abUpdateGpsBox(){
+      const tpsId = (()=>{ const sid=$('abFSaksiId').value; const f=abSaksiCache.find(s=>String(s.id)===String(sid)); return f? f.tps_id : null; })();
+      if(!tpsId){ $('abGpsStat').textContent='Pilih saksi dulu untuk cek radius TPS'; return; }
+      if(abCapturedLat===null || abCapturedLng===null){ $('abGpsStat').textContent='GPS belum tercapture — ambil foto untuk lock GPS'; return; }
+      try{
+        const t=await wFetchJSON(`${TAPI}/${encodeURIComponent(tpsId)}`);
+        const tLat=t.data?.lat, tLng=t.data?.lng;
+        if(tLat==null || tLng==null){ $('abGpsStat').textContent='⚠️ TPS belum ada GPS di Master TPS — foto tetap bisa disimpan (admin perlu lengkapi GPS TPS)'; $('abGpsStat').style.color='var(--muted)'; $('abGpsDetail').textContent=`Saksi GPS: ${abCapturedLat.toFixed(5)}, ${abCapturedLng.toFixed(5)} • TPS GPS: —`; $('abFJarak').value=''; return; }
+        const jarak=Math.round(abHaversine(abCapturedLat, abCapturedLng, Number(tLat), Number(tLng)));
+        $('abFJarak').value=jarak;
+        $('abGpsDetail').textContent=`Saksi: ${abCapturedLat.toFixed(5)}, ${abCapturedLng.toFixed(5)} → TPS ${tpsId}: ${Number(tLat).toFixed(5)}, ${Number(tLng).toFixed(5)} • Jarak ${jarak}m`;
+        if(jarak<=800){ $('abGpsStat').textContent=`✅ GPS Valid — ${jarak}m dari TPS (radius 800m)`; $('abGpsStat').style.color='var(--ok)'; $('abGpsBox').style.borderColor='#bbf7d0'; $('abGpsBox').style.background='#ecfdf5'; }
+        else { $('abGpsStat').textContent=`❌ GPS Di Luar TPS — ${jarak}m > 800m`; $('abGpsStat').style.color='var(--err)'; $('abGpsBox').style.borderColor='#fecaca'; $('abGpsBox').style.background='#fef2f2'; }
+      }catch(e){ $('abGpsStat').textContent='Gagal cek GPS TPS: '+e.message; }
+    }
+    async function abCamSnap(){
+      const v=$('abCamVideo'), c=$('abCamCanvas'), img=$('abFotoPrev');
+      if(!v.srcObject){ alert('Buka kamera dulu'); return; }
+      if(!$('abFSaksiId').value){ alert('Pilih saksi dulu'); return; }
+      c.width=v.videoWidth||1280; c.height=v.videoHeight||720;
+      c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+      // ambil GPS saat snap (lebih akurat)
+      try{
+        const pos=await new Promise((res,rej)=> navigator.geolocation.getCurrentPosition(res, rej, {enableHighAccuracy:true, timeout:7000, maximumAge:0}));
+        abCapturedLat=pos.coords.latitude; abCapturedLng=pos.coords.longitude;
+        $('abFLat').value=abCapturedLat.toFixed(7); $('abFLng').value=abCapturedLng.toFixed(7);
+      }catch(ge){ alert('GPS wajib aktif: '+ (ge.message||'izin lokasi ditolak') + '\nAktifkan GPS & izinkan lokasi, lalu coba lagi.'); return; }
+      // convert canvas to blob dengan compress
+      abCapturedBlob=await new Promise(res=> c.toBlob(res, 'image/jpeg', 0.82));
+      if(!abCapturedBlob){ alert('Gagal capture'); return; }
+      // preview
+      img.src=c.toDataURL('image/jpeg',0.82);
+      img.style.display=''; v.style.display='none';
+      $('abCamSnapBtn').style.display='none'; $('abCamRetakeBtn').style.display=''; $('abCamOpenBtn').style.display='none';
+      $('abFotoStat').textContent=`Foto tercapture ✓ (${(abCapturedBlob.size/1024).toFixed(1)}KB) — GPS ${abCapturedLat.toFixed(5)},${abCapturedLng.toFixed(5)}`;
+      $('abGpsBox').style.display=''; await abUpdateGpsBox();
+      abCamClose(); // tutup stream setelah capture, preview tetap
+      // tetap buka preview, tombol retake untuk ulang
+      $('abCamVideo').style.display='none';
+    }
+    function abCamRetake(){
+      abCapturedBlob=null; // akan recapture
+      $('abFotoPrev').style.display='none'; $('abFotoPrev').src='';
+      $('abFotoStat').textContent='Siap foto ulang — buka kamera lagi';
+      $('abCamRetakeBtn').style.display='none';
+      $('abCamOpenBtn').style.display='';
+      $('abGpsStat').textContent='Menunggu foto baru...';
+    }
+    async function abUploadFoto(){
+      // prioritas blob dari kamera
+      if(abCapturedBlob){
+        const fname=`absen-${$('abFSaksiId').value||'saksi'}-${($('abFTgl').value||new Date().toISOString().slice(0,10))}.jpg`;
+        $('abFotoStat').textContent=`Mengunggah bukti kamera (${(abCapturedBlob.size/1024).toFixed(1)}KB)...`;
+        const upRes=await fetch(`${location.origin}/api/c1/upload-request?filename=${encodeURIComponent(fname)}&content_type=${encodeURIComponent('image/jpeg')}`);
+        const up=await upRes.json(); if(!up.success) throw new Error(up.error||'gagal upload');
+        const put=await fetch(up.upload_url,{method:'PUT',headers:{'Content-Type':'image/jpeg'},body:abCapturedBlob});
+        if(!put.ok) throw new Error(`upload gagal ${put.status}`);
+        $('abFotoUrl').value=up.image_url;
+        $('abFotoStat').textContent='Bukti kamera terunggah ✓';
+        return up.image_url;
+      }
+      // fallback file input (seharusnya tidak dipakai)
+      const f=$('abFFoto').files[0];
+      if(!f) return $('abFotoUrl').value||null;
+      let blob=f, mime=f.type||'image/jpeg', fname=f.name;
+      try{ blob=await sCompressKtp(f); mime='image/jpeg'; fname=f.name.replace(/\.[a-z0-9]+$/i,'')+'.jpg'; }catch(e){}
+      $('abFotoStat').textContent='Mengunggah bukti...';
+      const upRes=await fetch(`${location.origin}/api/c1/upload-request?filename=${encodeURIComponent(fname)}&content_type=${encodeURIComponent(mime)}`);
+      const up=await upRes.json(); if(!up.success) throw new Error(up.error||'gagal upload');
+      const put=await fetch(up.upload_url,{method:'PUT',headers:{'Content-Type':mime},body:blob});
+      if(!put.ok) throw new Error(`upload gagal ${put.status}`);
+      $('abFotoUrl').value=up.image_url;
+      $('abFotoStat').textContent='Bukti terunggah ✓';
+      return up.image_url;
+    }
+    async function abLoad(offset){
+      abOffset=Math.max(0,offset);
+      try{
+        const p=new URLSearchParams({limit:AB_LIMIT, offset:abOffset});
+        if($('abFSearch').value.trim()) p.set('search',$('abFSearch').value.trim());
+        if($('abFFilterTgl').value) p.set('tanggal',$('abFFilterTgl').value);
+        if($('abFFilterStat').value) p.set('status',$('abFFilterStat').value);
+        const d=await wFetchJSON(`${ABAPI}?${p.toString()}`);
+        $('abPageInfo').textContent=`Total ${d.total} · tampil ${d.total?d.offset+1:0}–${d.offset+d.data.length}`;
+        $('abTotalBadge').textContent=d.total+' data';
+        $('abBodyRows').innerHTML=d.data.map(a=>`
+          <tr>
+            <td><div style="font-weight:800;">${wEsc(a.nama||'-')}</div><small style="color:var(--muted); font-family:monospace;">${wEsc(a.nik||'')}</small></td>
+            <td><span style="font-family:monospace; font-size:11px;">${wEsc(a.nik||'-')}</span></td>
+            <td><span class="badge">${wEsc(a.tps_id)}</span></td>
+            <td>${wEsc(a.desa||'-')}<br><small style="color:var(--muted);">${wEsc(a.kecamatan||'')}</small></td>
+            <td>${wEsc(a.tanggal)}</td>
+            <td>${a.status==='HADIR'?'<span class="badge" style="background:#dcfce7;color:#14532d;border-color:#bbf7d0;">HADIR</span>': a.status==='TIDAK'?'<span class="badge" style="background:#fee2e2;color:#991b1b;border-color:#fecaca;">TIDAK</span>': `<span class="badge">${wEsc(a.status)}</span>`}</td>
+            <td>${wEsc(a.jam_hadir||'-')}</td>
+            <td>${a.lat!=null && a.lng!=null ? `<span class="badge" style="${a.is_gps_valid?'background:#dcfce7;color:#14532d;border-color:#bbf7d0;':'background:#fee2e2;color:#991b1b;border-color:#fecaca;'} font-size:10.5px;">${a.is_gps_valid?'✅':'❌'} ${a.jarak_meter!=null? a.jarak_meter+'m':''}</span><br><small style="font-family:monospace; font-size:10px;">${Number(a.lat).toFixed(4)},${Number(a.lng).toFixed(4)}</small>` : '<span style="color:var(--muted); font-size:11px;">—</span>'}</td>
+            <td>${a.foto_bukti? `<img src="${wEsc(a.foto_bukti)}" class="k-foto-thumb" style="width:36px;height:36px;" onclick="sOpenKtp(this.src,'Bukti ${wEsc(a.nama).replace(/'/g,"\\'")}')" />` : '<span style="color:var(--muted); font-size:11px;">-</span>'}</td>
+            <td style="white-space:nowrap;">
+              <button class="btn btn-ghost" style="padding:6px 9px; font-size:12px;" onclick="abEdit(${a.id})">✏️</button>
+              <button class="btn btn-ghost" style="padding:6px 9px; font-size:12px;" onclick="abDel(${a.id})">🗑️</button>
+            </td>
+          </tr>`).join('') || `<tr><td colspan="10" style="text-align:center;color:var(--muted);">Belum ada absensi</td></tr>`;
+        // cards mobile
+        const cards=$('abCards');
+        if(cards){
+          cards.innerHTML=d.data.map(a=>`
+            <div class="kand-card">
+              ${a.foto_bukti? `<img src="${wEsc(a.foto_bukti)}" class="kand-card-foto" style="width:64px;height:64px;" onclick="sOpenKtp(this.src,'Bukti ${wEsc(a.nama).replace(/'/g,"\\'")}')" />` : `<div class="kand-card-foto no-foto">📷</div>`}
+              <div class="kand-card-main">
+                <div class="kand-card-head"><span class="badge">${wEsc(a.nama||'-')}</span><span class="badge" style="font-family:monospace; font-size:10.5px;">${wEsc(a.nik||'')}</span></div>
+                <div class="kand-card-name">${wEsc(a.tps_id)} • ${wEsc(a.desa||'-')}</div>
+                <div class="kand-card-meta"><span class="meta-chip"><b>Tgl</b> ${wEsc(a.tanggal)}</span><span class="meta-chip"><b>Jam</b> ${wEsc(a.jam_hadir||'-')}</span><span class="meta-chip" style="${a.is_gps_valid===0?'background:#fee2e2;color:#991b1b;border-color:#fecaca;': a.lat!=null?'background:#dcfce7;color:#14532d;border-color:#bbf7d0;':''}"><b>GPS</b> ${a.lat!=null? (a.is_gps_valid?'✅ ':'❌ ')+(a.jarak_meter!=null? a.jarak_meter+'m':'') : '—'}</span></div>
+                <div style="margin-top:6px;">${a.status==='HADIR'?'<span class="badge" style="background:#dcfce7;color:#14532d;border-color:#bbf7d0;">HADIR</span>': a.status==='TIDAK'?'<span class="badge" style="background:#fee2e2;color:#991b1b;border-color:#fecaca;">TIDAK</span>': `<span class="badge">${wEsc(a.status)}</span>`}</div>
+                <div class="kand-card-actions"><button class="btn btn-ghost" onclick="abEdit(${a.id})">✏️ Edit</button><button class="btn btn-ghost" onclick="abDel(${a.id})">🗑️ Hapus</button></div>
+              </div>
+            </div>`).join('') || '<div style="text-align:center;color:var(--muted);padding:14px;background:#fff;border:1px dashed var(--border);border-radius:12px;">Belum ada absensi</div>';
+          // responsive show/hide via CSS? force
+          if(window.matchMedia('(max-width:640px)').matches){ cards.style.display='grid'; } else { cards.style.display='none'; }
+        }
+        // refresh metrics
+        try{
+          const today=new Date().toISOString().slice(0,10);
+          const [h,t,i,sAll]=await Promise.all([
+            wFetchJSON(`${ABAPI}?tanggal=${today}&status=HADIR&limit=1`),
+            wFetchJSON(`${ABAPI}?tanggal=${today}&status=TIDAK&limit=1`),
+            wFetchJSON(`${ABAPI}?tanggal=${today}&status=IZIN&limit=1`),
+            wFetchJSON(`${ABAPI}?limit=1`)
+          ]);
+          $('abHadir').textContent=h.total; $('abTidak').textContent=t.total; $('abIzin').textContent=(i.total + (await wFetchJSON(`${ABAPI}?tanggal=${today}&status=SAKIT&limit=1`).then(r=>r.total).catch(()=>0))); $('abTotal').textContent=sAll.total;
+        }catch(e){}
+        }catch(err){ $('abBodyRows').innerHTML=`<tr><td colspan="10" style="text-align:center;color:var(--err);">${wEsc(err.message)}</td></tr>`; }
+    }
+    function abPage(d){ abLoad(abOffset + d*AB_LIMIT); }
+    async function abSave(){
+      const saksiId=parseInt($('abFSaksiId').value,10);
+      const tgl=$('abFTgl').value;
+      const status=$('abFStatus').value;
+      const jam=$('abFJam').value||null;
+      const ket=$('abFKet').value.trim()||null;
+      if(!Number.isInteger(saksiId)) { alert('Pilih saksi dulu (ketik nama/NIK, pilih dari list)'); return; }
+      if(!tgl) { alert('Tanggal wajib'); return; }
+      if(status==='HADIR' && !abCapturedBlob && !$('abFotoUrl').value){ alert('Foto bukti wajib diambil via kamera HP saksi (klik Buka Kamera → Ambil Foto). Foto galeri tidak diizinkan.'); return; }
+      if(status==='HADIR' && (abCapturedLat===null || abCapturedLng===null) && !$('abFLat').value){ alert('GPS belum tercapture — pastikan izin lokasi aktif dan ambil foto via kamera agar GPS otomatis terisi sesuai TPS.'); return; }
+      try{
+        const foto=await abUploadFoto();
+        const latVal = $('abFLat').value ? Number($('abFLat').value) : (abCapturedLat!==null? abCapturedLat : null);
+        const lngVal = $('abFLng').value ? Number($('abFLng').value) : (abCapturedLng!==null? abCapturedLng : null);
+        const editId=$('abFEditId').value;
+        const body={ saksi_id:saksiId, tanggal:tgl, status, jam_hadir:jam, foto_bukti:foto, keterangan:ket, lat: latVal, lng: lngVal };
+        if(editId){
+          await wFetchJSON(`${ABAPI}/${editId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        } else {
+          await wFetchJSON(ABAPI,{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        }
+        abCancel(); abLoad(abOffset);
+      }catch(err){ alert('Gagal simpan absensi: '+err.message); }
+    }
+    function abCancel(){
+      if(abStream){ abStream.getTracks().forEach(t=>t.stop()); abStream=null; }
+      abCapturedBlob=null; abCapturedLat=null; abCapturedLng=null;
+      $('abFEditId').value=''; $('abFSaksiSearch').value=''; $('abFSaksiId').value=''; $('abSaksiInfo').textContent=''; $('abFTgl').value=new Date().toISOString().slice(0,10); $('abFStatus').value='HADIR'; $('abFJam').value=''; $('abFKet').value=''; $('abFFoto').value=''; $('abFotoUrl').value=''; $('abFotoPrev').style.display='none'; $('abFotoPrev').src=''; $('abFLat').value=''; $('abFLng').value=''; $('abFJarak').value=''; $('abFotoStat').textContent='Belum ada foto — wajib ambil via kamera HP saksi (bukan galeri)'; $('abGpsBox').style.display='none'; $('abGpsStat').textContent='Menunggu foto...'; $('abGpsDetail').textContent=''; $('abCamVideo').style.display='none'; $('abCamVideo').srcObject=null; $('abCamOpenBtn').style.display=''; $('abCamSnapBtn').style.display='none'; $('abCamCloseBtn').style.display='none'; $('abCamRetakeBtn').style.display='none'; $('abCamCanvas').style.display='none';
+    }
+    async function abEdit(id){
+      try{
+        const d=await wFetchJSON(`${ABAPI}?limit=100`);
+        const r=d.data.find(x=>x.id===id);
+        if(!r) { alert('Data tidak ditemukan di halaman ini, refresh'); return; }
+        $('abFEditId').value=r.id;
+        // cari saksi untuk tampilkan nama
+        try{
+          const s=await wFetchJSON(`${SAPI}?search=${encodeURIComponent(r.saksi_id)}&limit=10`);
+          // fallback: cari berdasar saksi_id langsung via list? gunakan saksi cache
+          const found=s.data.find(x=>String(x.id)===String(r.saksi_id));
+          if(found){ $('abFSaksiSearch').value=`${found.nama} (${found.nik}) — TPS ${found.tps_id}`; $('abFSaksiId').value=found.id; $('abSaksiInfo').textContent=`TPS ${found.tps_id}`; }
+          else { $('abFSaksiSearch').value=''; $('abFSaksiId').value=r.saksi_id; }
+        }catch(e){ $('abFSaksiId').value=r.saksi_id; }
+        $('abFTgl').value=r.tanggal.slice(0,10);
+        $('abFStatus').value=r.status;
+        $('abFJam').value=r.jam_hadir||'';
+        $('abFKet').value=r.keterangan||'';
+        $('abFotoUrl').value=r.foto_bukti||'';
+        abCapturedLat = r.lat!=null? Number(r.lat) : null; abCapturedLng = r.lng!=null? Number(r.lng) : null;
+        $('abFLat').value = abCapturedLat!=null? abCapturedLat.toFixed(7) : '';
+        $('abFLng').value = abCapturedLng!=null? abCapturedLng.toFixed(7) : '';
+        $('abFJarak').value = r.jarak_meter!=null? r.jarak_meter : '';
+        if(r.foto_bukti){ $('abFotoPrev').src=r.foto_bukti; $('abFotoPrev').style.display=''; $('abFotoStat').textContent='Foto tersimpan (klik untuk perbesar)'; $('abGpsBox').style.display=''; if(r.lat!=null){ $('abGpsStat').textContent= r.is_gps_valid? `✅ GPS Valid ${r.jarak_meter}m dari TPS` : `❌ GPS Di Luar TPS ${r.jarak_meter}m`; $('abGpsDetail').textContent=`Lat ${Number(r.lat).toFixed(5)}, Lng ${Number(r.lng).toFixed(5)} → jarak ${r.jarak_meter}m`; } else { $('abGpsStat').textContent='GPS belum ada di Master TPS'; } } else { $('abFotoPrev').style.display='none'; $('abFotoStat').textContent='Belum pilih foto — wajib kamera HP'; $('abGpsBox').style.display='none'; }
+        $('abFSaksiSearch').closest('.card').scrollIntoView({behavior:'smooth'});
+      }catch(err){ alert('Gagal load edit: '+err.message); }
+    }
+    async function abDel(id){
+      if(!confirm('Hapus absensi #'+id+'?')) return;
+      try{ await wFetchJSON(`${ABAPI}/${id}`,{method:'DELETE'}); abLoad(abOffset); }catch(err){ alert('Gagal hapus: '+err.message); }
+    }
+
+    // ================= DANA SAKSI =================
+    const DNAPI=location.origin+'/api/dana';
+    let dnOffset=0; const DN_LIMIT=15;
+    let dnSaksiCache=[];
+    async function dnInit(){
+      if(!wToken()){ $('dnLoginCard').style.display=''; $('dnBody').style.display='none'; return; }
+      try{ await wFetchJSON(`${location.origin}/api/auth/me`); $('dnLoginCard').style.display='none'; $('dnBody').style.display=''; dnLoad(0); }catch(e){ localStorage.removeItem('c1_admin_token'); $('dnLoginCard').style.display=''; $('dnBody').style.display='none'; }
+    }
+    async function dnSearchSaksi(){
+      const q=$('dnFSaksiSearch').value.trim();
+      if(q.length<2){ $('dnSaksiList').innerHTML=''; return; }
+      try{
+        const d=await wFetchJSON(`${SAPI}?search=${encodeURIComponent(q)}&limit=10`);
+        dnSaksiCache=d.data;
+        $('dnSaksiList').innerHTML=d.data.map(s=>`<option value="${wEsc(s.nama)} (${wEsc(s.nik)}) — TPS ${wEsc(s.tps_id)}"></option>`).join('');
+        const exact=d.data.find(s=> `${s.nama} (${s.nik}) — TPS ${s.tps_id}`===q );
+        if(exact){ $('dnFSaksiId').value=exact.id; $('dnSaksiInfo').textContent=`TPS ${exact.tps_id} • ${wEsc(exact.bank||'-')} ${wEsc(exact.no_rekening||'')}`; if(exact.bank) $('dnFBank').value=exact.bank; if(exact.no_rekening) $('dnFRek').value=exact.no_rekening; }
+      }catch(e){}
+    }
+    $('dnFSaksiSearch')?.addEventListener('change', ()=>{
+      const v=$('dnFSaksiSearch').value.trim();
+      const f=dnSaksiCache.find(s=> `${s.nama} (${s.nik}) — TPS ${s.tps_id}`===v);
+      if(f){ $('dnFSaksiId').value=f.id; $('dnSaksiInfo').textContent=`TPS ${f.tps_id} • ${wEsc(f.bank||'')}`; if(f.bank) $('dnFBank').value=f.bank; if(f.no_rekening) $('dnFRek').value=f.no_rekening; }
+    });
+    function dnFotoChange(){
+      const f=$('dnFFoto').files[0];
+      $('dnFotoStat').textContent=f? `${f.name} (${(f.size/1024).toFixed(1)}KB)` : 'Belum pilih bukti';
+      if(f){ $('dnFotoPrev').src=URL.createObjectURL(f); $('dnFotoPrev').style.display=''; } else if(!$('dnFotoUrl').value) $('dnFotoPrev').style.display='none';
+    }
+    async function dnUploadFoto(){
+      const f=$('dnFFoto').files[0];
+      if(!f) return $('dnFotoUrl').value||null;
+      let blob=f, mime=f.type||'image/jpeg', fname=f.name;
+      try{ blob=await sCompressKtp(f); mime='image/jpeg'; fname=f.name.replace(/\.[a-z0-9]+$/i,'')+'.jpg'; }catch(e){}
+      $('dnFotoStat').textContent='Mengunggah bukti...';
+      const upRes=await fetch(`${location.origin}/api/c1/upload-request?filename=${encodeURIComponent(fname)}&content_type=${encodeURIComponent(mime)}`);
+      const up=await upRes.json(); if(!up.success) throw new Error(up.error||'gagal upload');
+      const put=await fetch(up.upload_url,{method:'PUT',headers:{'Content-Type':mime},body:blob});
+      if(!put.ok) throw new Error(`upload gagal ${put.status}`);
+      $('dnFotoUrl').value=up.image_url;
+      $('dnFotoStat').textContent='Bukti terunggah ✓';
+      return up.image_url;
+    }
+    async function dnLoad(offset){
+      dnOffset=Math.max(0,offset);
+      try{
+        const p=new URLSearchParams({limit:DN_LIMIT, offset:dnOffset});
+        if($('dnFSearch').value.trim()) p.set('search',$('dnFSearch').value.trim());
+        if($('dnFFilterStat').value) p.set('status',$('dnFFilterStat').value);
+        const d=await wFetchJSON(`${DNAPI}?${p.toString()}`);
+        $('dnPageInfo').textContent=`Total ${d.total} · tampil ${d.total?d.offset+1:0}–${d.offset+d.data.length}`;
+        $('dnTotalBadge').textContent=d.total+' data';
+        const fmtRp=n=> 'Rp '+Number(n||0).toLocaleString('id-ID');
+        if(d.summary){
+          $('dnTotal').textContent=fmtRp(d.summary.total);
+          $('dnCair').textContent=fmtRp(d.summary.cair);
+          $('dnJml').textContent=d.summary.jml+' transaksi';
+          const pending=Number(d.summary.total||0)-Number(d.summary.cair||0);
+          $('dnPending').textContent=fmtRp(pending);
+        }
+        $('dnBodyRows').innerHTML=d.data.map(r=>`
+          <tr>
+            <td><div style="font-weight:800;">${wEsc(r.nama||'-')}</div><small style="color:var(--muted); font-family:monospace;">${wEsc(r.nik||'')}</small></td>
+            <td><span class="badge">${wEsc(r.tps_id)}</span></td>
+            <td>${wEsc(r.desa||'-')}<br><small style="color:var(--muted);">${wEsc(r.kecamatan||'')}</small></td>
+            <td><b style="color:var(--text);">${fmtRp(r.nominal)}</b></td>
+            <td><span class="badge" style="background:#f0fdf4; color:#14532d; border-color:#bbf7d0;">${wEsc(r.bank||'-')}</span></td>
+            <td><span style="font-family:monospace; font-size:11px;">${wEsc(r.no_rekening||'-')}</span></td>
+            <td>${r.status==='CAIR'?'<span class="badge" style="background:#dcfce7;color:#14532d;border-color:#bbf7d0;">CAIR</span>': r.status==='PENDING'?'<span class="badge" style="background:#fef3c7;color:#92400e;border-color:#fde68a;">PENDING</span>': `<span class="badge">${wEsc(r.status)}</span>`}</td>
+            <td>${wEsc(r.tanggal_cair||'-')}</td>
+            <td>${r.bukti_tf? `<img src="${wEsc(r.bukti_tf)}" class="k-foto-thumb" style="width:32px;height:32px;" onclick="sOpenKtp(this.src,'Bukti TF')" />` : '<span style="color:var(--muted); font-size:11px;">-</span>'}</td>
+            <td style="white-space:nowrap;">
+              <button class="btn btn-ghost" style="padding:6px 9px; font-size:12px;" onclick="dnEdit(${r.id})">✏️</button>
+              <button class="btn btn-ghost" style="padding:6px 9px; font-size:12px;" onclick="dnDel(${r.id})">🗑️</button>
+            </td>
+          </tr>`).join('') || `<tr><td colspan="10" style="text-align:center;color:var(--muted);">Belum ada dana</td></tr>`;
+        const cards=$('dnCards');
+        if(cards){
+          cards.innerHTML=d.data.map(r=>`
+            <div class="kand-card">
+              <div class="kand-card-foto no-foto" style="font-size:18px;">💰</div>
+              <div class="kand-card-main">
+                <div class="kand-card-head"><span class="badge">${wEsc(r.nama||'-')}</span><span class="badge" style="font-family:monospace;">${wEsc(r.nik||'')}</span></div>
+                <div class="kand-card-name">${fmtRp(r.nominal)} • <span style="color:var(--muted); font-size:12px;">${wEsc(r.bank||'-')} ${wEsc(r.no_rekening||'')}</span></div>
+                <div class="kand-card-meta"><span class="meta-chip"><b>TPS</b> ${wEsc(r.tps_id)}</span><span class="meta-chip"><b>${wEsc(r.status)}</b> ${wEsc(r.tanggal_cair||'')}</span></div>
+                <div class="kand-card-actions"><button class="btn btn-ghost" onclick="dnEdit(${r.id})">✏️ Edit</button><button class="btn btn-ghost" onclick="dnDel(${r.id})">🗑️ Hapus</button></div>
+              </div>
+            </div>`).join('') || '<div style="text-align:center;color:var(--muted);padding:14px;background:#fff;border:1px dashed var(--border);border-radius:12px;">Belum ada dana</div>';
+          if(window.matchMedia('(max-width:640px)').matches) cards.style.display='grid'; else cards.style.display='none';
+        }
+      }catch(err){ $('dnBodyRows').innerHTML=`<tr><td colspan="10" style="text-align:center;color:var(--err);">${wEsc(err.message)}</td></tr>`; }
+    }
+    function dnPage(d){ dnLoad(dnOffset + d*DN_LIMIT); }
+    async function dnSave(){
+      const saksiId=parseInt($('dnFSaksiId').value,10);
+      const nominal=parseInt($('dnFNominal').value,10);
+      if(!Number.isInteger(saksiId)) return alert('Pilih saksi dulu');
+      if(!Number.isInteger(nominal)||nominal<=0) return alert('Nominal harus >0');
+      try{
+        const bukti=await dnUploadFoto();
+        const body={ saksi_id:saksiId, nominal, bank:$('dnFBank').value||null, no_rekening:$('dnFRek').value.trim()||null, status:$('dnFStatus').value, tanggal_cair:$('dnFTglCair').value||null, bukti_tf:bukti, keterangan:$('dnFKet').value.trim()||null };
+        const editId=$('dnFEditId').value;
+        if(editId) await wFetchJSON(`${DNAPI}/${editId}`,{method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        else await wFetchJSON(DNAPI,{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        dnCancel(); dnLoad(dnOffset);
+      }catch(err){ alert('Gagal simpan dana: '+err.message); }
+    }
+    function dnCancel(){
+      $('dnFEditId').value=''; $('dnFSaksiSearch').value=''; $('dnFSaksiId').value=''; $('dnSaksiInfo').textContent=''; $('dnFNominal').value=''; $('dnFBank').value=''; $('dnFRek').value=''; $('dnFStatus').value='PENDING'; $('dnFTglCair').value=''; $('dnFKet').value=''; $('dnFFoto').value=''; $('dnFotoUrl').value=''; $('dnFotoPrev').style.display='none'; $('dnFotoStat').textContent='Belum pilih bukti';
+    }
+    async function dnEdit(id){
+      try{
+        const d=await wFetchJSON(`${DNAPI}?limit=100`);
+        const r=d.data.find(x=>x.id===id);
+        if(!r) return alert('Tidak ditemukan');
+        $('dnFEditId').value=r.id;
+        // cari saksi untuk tampilkan
+        try{
+          const s=await wFetchJSON(`${SAPI}?search=${encodeURIComponent(r.saksi_id)}&limit=5`);
+          const f=s.data.find(x=>String(x.id)===String(r.saksi_id));
+          if(f){ $('dnFSaksiSearch').value=`${f.nama} (${f.nik}) — TPS ${f.tps_id}`; $('dnFSaksiId').value=f.id; $('dnSaksiInfo').textContent=`TPS ${f.tps_id}`; }
+          else { $('dnFSaksiId').value=r.saksi_id; }
+        }catch(e){ $('dnFSaksiId').value=r.saksi_id; }
+        $('dnFNominal').value=r.nominal;
+        $('dnFBank').value=r.bank||'';
+        $('dnFRek').value=r.no_rekening||'';
+        $('dnFStatus').value=r.status;
+        $('dnFTglCair').value=r.tanggal_cair? r.tanggal_cair.slice(0,10):'';
+        $('dnFKet').value=r.keterangan||'';
+        $('dnFotoUrl').value=r.bukti_tf||'';
+        if(r.bukti_tf){ $('dnFotoPrev').src=r.bukti_tf; $('dnFotoPrev').style.display=''; $('dnFotoStat').textContent='Bukti tersimpan'; }
+        $('dnFSaksiSearch').closest('.card').scrollIntoView({behavior:'smooth'});
+      }catch(err){ alert('Gagal load edit: '+err.message); }
+    }
+    async function dnDel(id){
+      if(!confirm('Hapus dana #'+id+'?')) return;
+      try{ await wFetchJSON(`${DNAPI}/${id}`,{method:'DELETE'}); dnLoad(dnOffset); }catch(err){ alert('Gagal hapus: '+err.message); }
+    }
+
     // ================= DASHBOARD ADMIN =================
     const AAPI = location.origin + '/api/admin';
     let aOffset = 0;
@@ -2802,6 +3402,28 @@
             <div class="master-item"><span>🏡 Desa</span><strong>${fmtID(m.desa)}</strong></div>
             <div class="master-item"><span>👤 Admin</span><strong>${fmtID(m.admin_users)}</strong></div>`;
         }
+        // dashboard absensi hari ini (kamera+GPS)
+        try{
+          const today=new Date().toISOString().slice(0,10);
+          if($('aAbDate')) $('aAbDate').textContent=new Date().toLocaleDateString('id-ID',{weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+          const [h,t,i,sak]=await Promise.all([
+            wFetchJSON(`${location.origin}/api/absensi?tanggal=${today}&status=HADIR&limit=1`).catch(()=>({total:0})),
+            wFetchJSON(`${location.origin}/api/absensi?tanggal=${today}&status=TIDAK&limit=1`).catch(()=>({total:0})),
+            wFetchJSON(`${location.origin}/api/absensi?tanggal=${today}&status=IZIN&limit=1`).catch(()=>({total:0})),
+            wFetchJSON(`${location.origin}/api/absensi?tanggal=${today}&status=SAKIT&limit=1`).catch(()=>({total:0}))
+          ]);
+          const hadir=Number(h.total||0), tidak=Number(t.total||0), izin=Number(i.total||0), sakit=Number(sak.total||0);
+          if($('aAbHadirDash')) $('aAbHadirDash').textContent=hadir;
+          if($('aAbTidakDash')) $('aAbTidakDash').textContent=tidak;
+          if($('aAbIzinDash')) $('aAbIzinDash').textContent=izin+sakit;
+          if($('aAbTotalDash')) $('aAbTotalDash').textContent=hadir+tidak+izin+sakit;
+          const list=await wFetchJSON(`${location.origin}/api/absensi?tanggal=${today}&limit=5`).catch(()=>({data:[]})); 
+          const invalidCount=list.data.filter(x=> x.is_gps_valid===0).length;
+          if($('aAbGpsWarn')){ if(invalidCount>0){ $('aAbGpsWarn').textContent=`⚠️ ${invalidCount} absensi GPS di luar radius TPS (800m) — perlu verifikasi`; $('aAbGpsWarn').style.display=''; } else { $('aAbGpsWarn').style.display='none'; } }
+          if($('aAbList')){
+            $('aAbList').innerHTML=list.data.slice(0,5).map(a=>`<div style="display:flex; gap:8px; align-items:center; padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:#fff;"><img src="${a.foto_bukti? wEsc(a.foto_bukti) : ''}" style="${a.foto_bukti? 'width:36px;height:36px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;' : 'display:none;'}" onclick="sOpenKtp(this.src,'Bukti ${wEsc(a.nama||'').replace(/'/g,"\\'")}')" /><div style="flex:1; min-width:0;"><div style="font-weight:800; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${wEsc(a.nama||'-')} • ${wEsc(a.tps_id)}</div><div style="font-size:11px; color:var(--muted);">${wEsc(a.tanggal)} ${wEsc(a.jam_hadir||'')} • ${a.status} ${a.jarak_meter!=null? `• ${a.jarak_meter}m ${a.is_gps_valid?'✅':'❌'}`:''}</div></div><span class="badge" style="${a.status==='HADIR'?'background:#dcfce7;color:#14532d;border-color:#bbf7d0;': a.status==='TIDAK'?'background:#fee2e2;color:#991b1b;border-color:#fecaca;':''}">${wEsc(a.status)}</span></div>`).join('') || '<div style="text-align:center; color:var(--muted); font-size:12px; padding:8px;">Belum ada absensi hari ini</div>';
+          }
+        }catch(e){ console.error('absensi dash', e.message); }
         // per kategori - table + cards presisi
         const katRows = d.per_kategori || [];
         if($('aKatCount')) $('aKatCount').textContent = `${fmtID(katRows.length)} kategori`;

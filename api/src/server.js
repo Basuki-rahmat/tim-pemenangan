@@ -13,6 +13,8 @@ const adminRouter = require('./routes/admin');
 const dapilRouter = require('./routes/dapil');
 const tpsRouter = require('./routes/tps');
 const saksiRouter = require('./routes/saksi');
+const absensiRouter = require('./routes/absensi');
+const danaRouter = require('./routes/dana');
 
 const app = express();
 
@@ -28,6 +30,8 @@ app.use('/api/admin', adminRouter);
 app.use('/api/dapil', dapilRouter);
 app.use('/api/tps', tpsRouter);
 app.use('/api/saksi', saksiRouter);
+app.use('/api/absensi', absensiRouter);
+app.use('/api/dana', danaRouter);
 
 const frontendDir = path.join(__dirname, '..', '..', 'frontend');
 app.use(express.static(frontendDir));
