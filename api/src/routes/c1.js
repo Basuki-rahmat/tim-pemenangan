@@ -34,19 +34,30 @@ router.post('/submit', async (req, res) => {
     tps_id,
     kategori_pemilihan_id,
     image_key,
+    image_keys,
     suara_sah,
     suara_tidak_sah,
     detail_suara,
     jumlah_dpt,
-    jumlah_hadir
+    jumlah_hadir,
+    jumlah_surat_suara,
+    surat_baik,
+    surat_rusak,
+    surat_cadangan
   } = body;
 
-  if (!tps_id || !kategori_pemilihan_id || !image_key) {
+  // dukung multi gambar: image_keys array atau single image_key
+  let keys = [];
+  if (Array.isArray(image_keys) && image_keys.length) keys = image_keys.filter(Boolean).map(s=>String(s).trim()).slice(0,5);
+  else if (image_key) keys = [String(image_key).trim()];
+  // juga dukung image_urls dari frontend lama? abaikan
+  if (!tps_id || !kategori_pemilihan_id || keys.length===0) {
     return res.status(400).json({
       success: false,
-      error: 'tps_id, kategori_pemilihan_id, dan image_key wajib diisi'
+      error: 'tps_id, kategori_pemilihan_id, dan image_key(s) wajib diisi (upload minimal 1 foto C1)'
     });
   }
+  if (keys.length>5) return res.status(400).json({ success:false, error:'maksimal 5 foto C1' });
   if (!Number.isInteger(suara_sah) || suara_sah < 0) {
     return res.status(400).json({ success: false, error: 'suara_sah harus integer >= 0' });
   }
@@ -75,16 +86,33 @@ router.post('/submit', async (req, res) => {
     // batal = tidak sah, hadir = sah + tidak sah
     return res.status(400).json({ success: false, error: `jumlah_hadir (${hadir}) harus = suara_sah (${suara_sah}) + suara_tidak_sah (${suara_tidak_sah})` });
   }
+  // validasi surat suara (opsional)
+  let jSurat = jumlah_surat_suara !== undefined && jumlah_surat_suara !== null && jumlah_surat_suara !== '' ? parseInt(jumlah_surat_suara,10) : null;
+  let sBaik = surat_baik !== undefined && surat_baik !== null && surat_baik !== '' ? parseInt(surat_baik,10) : null;
+  let sRusak = surat_rusak !== undefined && surat_rusak !== null && surat_rusak !== '' ? parseInt(surat_rusak,10) : null;
+  let sCad = surat_cadangan !== undefined && surat_cadangan !== null && surat_cadangan !== '' ? parseInt(surat_cadangan,10) : null;
+  for(const [v,n] of [[jSurat,'jumlah_surat_suara'],[sBaik,'surat_baik'],[sRusak,'surat_rusak'],[sCad,'surat_cadangan']]){
+    if(v!==null && (!Number.isInteger(v) || v<0 || v>1000)) return res.status(400).json({success:false, error:`${n} harus 0-1000`});
+  }
+  if(jSurat!==null && sBaik!==null && sRusak!==null && sCad!==null){
+    const sumSurat = (sBaik||0)+(sRusak||0)+(sCad||0);
+    if(sumSurat > jSurat) return res.status(400).json({success:false, error:`surat_baik (${sBaik}) + rusak (${sRusak}) + cadangan (${sCad}) = ${sumSurat} tidak boleh > jumlah_surat_suara (${jSurat})`});
+  }
 
   const payload = {
     tps_id,
     kategori_pemilihan_id,
-    image_key,
+    image_key: keys[0],
+    image_keys: keys,
     suara_sah,
     suara_tidak_sah,
     detail_suara,
     jumlah_dpt: dpt,
     jumlah_hadir: hadir,
+    jumlah_surat_suara: jSurat,
+    surat_baik: sBaik,
+    surat_rusak: sRusak,
+    surat_cadangan: sCad,
     received_at: new Date().toISOString()
   };
 
