@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Panel Admin — Rekapitulasi Form C1</title>
+  <meta name="description" content="Panel Admin Rekapitulasi Form C1 — 29.000 TPS. Kelola wilayah, kandidat, dapil, TPS, saksi, absensi & dana." />
+  <meta property="og:title" content="Tim Pemenangan — Rekapitulasi Form C1" />
+  <meta property="og:description" content="Panel Admin & Dashboard Saksi — 29.000 TPS. Login saksi dengan kartu kandidat." />
+  <meta property="og:image" content="https://via.placeholder.com/1200x630.png?text=Tim+Pemenangan+C1" />
+  <meta property="og:url" content="/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
@@ -1870,9 +1877,22 @@
       $('kDetailModal').style.display = 'none';
       document.body.style.overflow = '';
     }
+    function showGpsError(jarak, msg){
+      const distEl=$('gpsErrorDistance'), subEl=$('gpsErrorSub'), msgEl=$('gpsErrorMsg');
+      const m=Number(jarak||0);
+      if(distEl) distEl.textContent = m>=1000 ? (m/1000).toFixed(1)+' km' : m+' m';
+      if(subEl) subEl.textContent = m? `${m.toLocaleString('id-ID')} m > 800 m radius TPS` : '';
+      if(msgEl) msgEl.textContent = msg || `GPS Anda ${m}m dari TPS tugas. Foto harus diambil di lokasi TPS (radius 800m).`;
+      const modal=$('gpsErrorModal');
+      if(modal){ modal.classList.add('open'); modal.style.display='flex'; document.body.style.overflow='hidden'; }
+    }
+    function closeGpsError(){
+      const m=$('gpsErrorModal');
+      if(m){ m.classList.remove('open'); m.style.display='none'; document.body.style.overflow=''; }
+    }
     // tutup modal dengan ESC / klik overlay
     document.addEventListener('keydown', (e)=>{
-      if(e.key==='Escape'){ if($('kFotoModal')?.classList.contains('open')) kFotoModalClose(); if($('kDetailModal')?.classList.contains('open')) kDetailClose(); }
+      if(e.key==='Escape'){ if($('kFotoModal')?.classList.contains('open')) kFotoModalClose(); if($('kDetailModal')?.classList.contains('open')) kDetailClose(); if($('gpsErrorModal')?.classList.contains('open')) closeGpsError(); }
     });
 
     // ================= ADMIN DAPIL & TPS =================
@@ -2720,11 +2740,28 @@
       return d;
     }
 
-    function sShowCred(username, password, noHp) {
+    function sShowCred(username, password, noHp, opts) {
       $('sCredUser').textContent = username || '-';
       $('sCredPass').textContent = password;
-      const msg = `Halo, akun Saksi TPS Anda sudah dibuat.\n\nUsername: ${username}\nPassword: ${password}\n\nLogin di: ${location.origin}\n\nJaga kerahasiaan akun ini. Terima kasih.`;
+      // opts: {id, nama, tpsId, desa, kec, kab, kandidatNama, partai}
+      const kartuId = opts && opts.id ? opts.id : '';
+      const kartuUrl = kartuId ? `${location.origin}/kartu/${kartuId}` : `${location.origin}/saksi.html`;
+      const loginUrl = `${location.origin}/saksi.html?u=${encodeURIComponent(username||'')}`;
+      const nama = opts && opts.nama ? opts.nama : '';
+      const tpsLabel = opts && opts.tpsId ? `TPS ${opts.tpsId}` + (opts.desa? ` — ${opts.desa}`:'') + (opts.kec? ` / ${opts.kec}`:'') : (opts && opts.tpsId? `TPS ${opts.tpsId}`: '');
+      const kandidatLine = opts && opts.kandidatNama ? `Kandidat: *${opts.kandidatNama}*${opts.partai?` (${opts.partai})`:''}` : '';
+      const msg = `*🗳️ Tim Pemenangan — Kartu Saksi TPS*\n\nHalo *${nama || username}* 👋\n\n${tpsLabel? tpsLabel+'\n':''}${kandidatLine? kandidatLine+'\n\n':''}🔐 *Username:* \`${username}\`\n🆔 *User ID:* #${kartuId||'-'}\n🔑 *Password:* \`${password}\`\n\n🔗 *Login Saksi:*\n${loginUrl}\n\n🪪 *Kartu Saksi (ketuk untuk pratinjau foto kandidat):*\n${kartuUrl}\n\n_Foto kandidat akan muncul sebagai thumbnail pratinjau link di WhatsApp._\n\n⚠️ Jaga kerahasiaan akun. Password hanya tampil sekali. Terima kasih.`;
       $('sCredWa').href = `https://wa.me/${sHp62(noHp)}?text=${encodeURIComponent(msg)}`;
+      // tampilkan link kartu di box juga
+      let kartuBox = $('sCredKartu');
+      if(!kartuBox){
+        const c=document.createElement('div');
+        c.id='sCredKartu';
+        c.style.cssText='margin-top:10px;padding:10px;border:1px solid var(--border);border-radius:11px;background:#f8fafc;font-size:12px;word-break:break-all;';
+        $('sCredBox').appendChild(c);
+        kartuBox=c;
+      }
+      kartuBox.innerHTML = `🪪 Kartu: <a href="${kartuUrl}" target="_blank" style="color:var(--accent);font-weight:700;">${kartuUrl}</a> — pratinjau OG foto kandidat<br>🔗 Login: <a href="${loginUrl}" target="_blank" style="color:var(--accent);font-weight:700;">${loginUrl}</a>`;
       $('sCredBox').style.display = '';
       $('sCredBox').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
@@ -2737,7 +2774,10 @@
       if (!confirm(`Reset password "${nama}" dan kirim via WA?`)) return;
       try {
         const d = await wFetchJSON(`${SAPI}/${id}/reset-password`, { method: 'POST' });
-        sShowCred(d.data.username, d.data.password, hp === '-' ? '' : hp);
+        // ambil data lengkap untuk OG kartu (kandidat foto)
+        let full=null;
+        try{ const r=await wFetchJSON(`${SAPI}?search=${encodeURIComponent(d.data.nik||nama)}&limit=5`); full=r.data.find(x=>String(x.id)===String(id))||r.data[0]; }catch(e){}
+        sShowCred(d.data.username, d.data.password, hp === '-' ? '' : hp, { id: d.data.id, nama: full?.nama||d.data.nama||nama, tpsId: full?.tps_id||d.data.tps_id, kandidatNama: full?.kandidat_nama||'', partai: '' });
       } catch (err) {
         alert('Gagal reset: ' + err.message);
       }
@@ -2876,7 +2916,11 @@
           sCancel();
           sStat();
           sLoad(sOffset);
-          sShowCred(d.data.username, d.data.password, d.data.no_hp);
+          // siapkan data untuk template WA OG (kartu + foto kandidat)
+          const selOpt = $('sFKandidat').selectedOptions[0];
+          let kandNama='', partai='';
+          if(selOpt && selOpt.value){ const txt=selOpt.textContent||''; const m=txt.match(/—\s*(.*?)\s*(\((.*?)\))?\s*$/); if(m){ kandNama=(m[1]||'').trim(); partai=(m[3]||'').trim(); } else { kandNama=txt.split('—').pop().trim(); } }
+          sShowCred(d.data.username, d.data.password, d.data.no_hp, { id: d.data.id, nama, tpsId: d.data.tps_id, kandidatNama: kandNama, partai });
         }
       } catch (err) {
         alert('Gagal menyimpan: ' + err.message);
@@ -3124,7 +3168,13 @@
           await wFetchJSON(ABAPI,{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
         }
         abCancel(); abLoad(abOffset);
-      }catch(err){ alert('Gagal simpan absensi: '+err.message); }
+      }catch(err){
+        const msg=err.message||'';
+        const mm=msg.match(/(\d+)\s*m/);
+        if(msg.includes('GPS di luar radius')|| msg.includes('GPS di luar') || msg.includes('GPS')){
+          showGpsError(mm? parseInt(mm[1],10): 102803, msg);
+        } else alert('Gagal simpan absensi: '+msg);
+      }
     }
     function abCancel(){
       if(abStream){ abStream.getTracks().forEach(t=>t.stop()); abStream=null; }
@@ -3540,6 +3590,37 @@
       </div>
       <div class="k-modal-actions">
         <button class="btn btn-ghost" onclick="kDetailClose()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal GPS Error Keren -->
+  <div id="gpsErrorModal" class="k-modal" onclick="if(event.target===this) closeGpsError()" style="display:none;">
+    <div class="k-modal-card" style="max-width:420px; border-top:4px solid var(--err); overflow:hidden;">
+      <div class="k-modal-head" style="background:linear-gradient(135deg,#fef2f2 0%, #fff 100%); border-bottom:1px solid #fee2e2;">
+        <h3 style="color:var(--err);">📍 GPS di Luar TPS<br><small style="color:var(--muted); font-weight:600;">Radius 800m tidak terpenuhi</small></h3>
+        <button class="k-modal-close" onclick="closeGpsError()" aria-label="Tutup" style="border-color:#fecaca; background:#fff;">✕</button>
+      </div>
+      <div class="k-modal-body" style="text-align:center; padding:20px 16px 12px;">
+        <div style="width:72px; height:72px; border-radius:999px; background:radial-gradient(circle at 30% 30%, #fee2e2, #fecaca); border:2px solid #fca5a5; display:grid; place-items:center; margin:0 auto 12px; font-size:32px; box-shadow:0 8px 20px rgba(220,38,38,.18);">🚨</div>
+        <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.8px; color:var(--muted);">Jarak Anda ke TPS</div>
+        <div id="gpsErrorDistance" style="font-size:32px; font-weight:900; letter-spacing:-1px; color:var(--err); margin-top:4px; line-height:1;">102 km</div>
+        <div id="gpsErrorSub" style="font-size:11px; color:var(--muted); font-weight:700; margin-top:2px;">102803 m > 800 m</div>
+        <div id="gpsErrorMsg" style="font-size:12.5px; color:#334155; margin-top:10px; line-height:1.5; background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:10px 12px; text-align:left;">GPS di luar radius TPS. Pastikan foto diambil di lokasi TPS tugas.</div>
+        <div style="margin-top:12px; text-align:left; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px 12px;">
+          <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:#475569; margin-bottom:6px;">💡 Agar GPS Valid:</div>
+          <div style="font-size:11.5px; color:#334155; line-height:1.6;">
+            • Berada <b>di area TPS tugas</b> (&lt;800m)<br>
+            • Aktifkan <b>GPS Akurasi Tinggi</b> di HP<br>
+            • Foto di <b>luar ruangan</b>, jangan di dalam gedung<br>
+            • Izinkan <b>lokasi</b> untuk browser
+          </div>
+        </div>
+      </div>
+      <div class="k-modal-actions" style="justify-content:center; gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-ghost" onclick="closeGpsError()">Tutup</button>
+        <button class="btn btn-primary" style="width:auto; margin:0; padding:9px 16px;" onclick="closeGpsError(); document.getElementById('abGpsBox')?.scrollIntoView({behavior:'smooth', block:'center'});">📍 Lihat Peta TPS</button>
+        <button class="btn btn-ghost" onclick="closeGpsError(); abCamRetake(); setTimeout(()=>abCamOpen(), 300);" style="background:#f0fdf4; border-color:#bbf7d0; color:#14532d;">🔄 Foto Ulang</button>
       </div>
     </div>
   </div>
