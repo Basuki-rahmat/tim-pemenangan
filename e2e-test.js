@@ -1,6 +1,6 @@
 // End-to-End Test: Presigned URL -> PUT ke MinIO -> POST /api/c1/submit -> Redis Queue
-// Jalankan: node e2e-test.js
-const API = 'http://localhost:3000';
+// Jalankan: node e2e-test.js [--api=http://localhost:3000]
+const API = process.argv.find(a => a.startsWith('--api='))?.split('=')[1] || 'http://localhost:3000';
 
 async function main() {
   console.log('== E2E TEST FORM C1 ==================================');

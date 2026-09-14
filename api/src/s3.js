@@ -13,6 +13,20 @@ const s3 = new S3Client({
   forcePathStyle: config.s3.forcePathStyle
 });
 
+// Client penanda tangan yang memakai endpoint PUBLIK agar presigned URL yang
+// dihasilkan bisa diakses browser dari luar (Docker host / internet), sementara
+// operasi internal (ensureBucket) tetap lewat s3 di atas. Signing adalah operasi
+// lokal murni — tidak perlu koneksi ke endpoint pada saat generate.
+const signer = new S3Client({
+  endpoint: config.s3PublicEndpoint,
+  region: config.s3.region,
+  credentials: {
+    accessKeyId: config.s3.accessKey,
+    secretAccessKey: config.s3.secretKey
+  },
+  forcePathStyle: config.s3.forcePathStyle
+});
+
 async function ensureBucket() {
   try {
     await s3.send(new HeadBucketCommand({ Bucket: config.s3.bucket }));
@@ -23,7 +37,7 @@ async function ensureBucket() {
 }
 
 function publicUrl(key) {
-  return `${config.s3.endpoint}/${config.s3.bucket}/${key}`;
+  return `${config.s3PublicEndpoint}/${config.s3.bucket}/${encodeURIComponent(key)}`;
 }
 
 async function createPresignedUpload({ filename, contentType }) {
@@ -37,7 +51,7 @@ async function createPresignedUpload({ filename, contentType }) {
     ContentType: contentType || 'image/jpeg'
   });
 
-  const uploadUrl = await getSignedUrl(s3, command, { expiresIn: expiresInSec });
+  const uploadUrl = await getSignedUrl(signer, command, { expiresIn: expiresInSec });
 
   return {
     image_key: key,

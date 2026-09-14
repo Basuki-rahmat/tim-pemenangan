@@ -13,6 +13,7 @@ const STAT=['PENDING','PROSES','CAIR','BATAL'];
 
 function likeParam(s){ return `%${String(s).replace(/[%_]/g,'')}%`; }
 function validDate(d){ return !d || (/^\d{4}-\d{2}-\d{2}$/.test(String(d)) && !isNaN(new Date(d).getTime())); }
+function validRek(rek){ return /^[0-9]{8,20}$/.test(String(rek||'').trim()); }
 
 router.get('/', async (req,res)=>{
   const t0=Date.now();
@@ -46,6 +47,7 @@ router.post('/', requireAdmin, async (req,res)=>{
   if(!Number.isInteger(nominal) || nominal<=0) return res.status(400).json({success:false, error:'nominal wajib >0'});
   if(!STAT.includes(status)) return res.status(400).json({success:false, error:'status '+STAT.join('/')});
   if(tgl && !validDate(tgl)) return res.status(400).json({success:false, error:'tanggal_cair YYYY-MM-DD'});
+  if(norek && !validRek(norek)) return res.status(400).json({success:false, error:'no_rekening harus 8-20 digit angka'});
   try{
     const [s]=await writePool.query('SELECT id, tps_id, bank, no_rekening FROM saksi WHERE id=?', [saksiId]);
     if(!s.length) return res.status(400).json({success:false, error:'saksi tidak ditemukan'});
@@ -62,7 +64,7 @@ router.put('/:id', requireAdmin, async (req,res)=>{
   const sets=[], vals=[];
   if(req.body.nominal!==undefined){ const n=parseInt(req.body.nominal,10); if(!Number.isInteger(n)||n<=0) return res.status(400).json({success:false,error:'nominal >0'}); sets.push('nominal=?'); vals.push(n); }
   if(req.body.bank!==undefined){ sets.push('bank=?'); vals.push(req.body.bank? String(req.body.bank).trim().toUpperCase().slice(0,32): null); }
-  if(req.body.no_rekening!==undefined){ sets.push('no_rekening=?'); vals.push(req.body.no_rekening? String(req.body.no_rekening).trim().slice(0,64): null); }
+  if(req.body.no_rekening!==undefined){ const v=req.body.no_rekening? String(req.body.no_rekening).trim().slice(0,64): null; if(v && !validRek(v)) return res.status(400).json({success:false, error:'no_rekening harus 8-20 digit angka'}); sets.push('no_rekening=?'); vals.push(v); }
   if(req.body.status!==undefined){ const v=String(req.body.status).trim().toUpperCase(); if(!STAT.includes(v)) return res.status(400).json({success:false,error:'status '+STAT.join('/')}); sets.push('status=?'); vals.push(v); }
   if(req.body.tanggal_cair!==undefined){ const v=req.body.tanggal_cair? String(req.body.tanggal_cair).trim().slice(0,10): null; if(v && !validDate(v)) return res.status(400).json({success:false,error:'tanggal YYYY-MM-DD'}); sets.push('tanggal_cair=?'); vals.push(v); }
   if(req.body.bukti_tf!==undefined){ sets.push('bukti_tf=?'); vals.push(req.body.bukti_tf? String(req.body.bukti_tf).trim().slice(0,512): null); }

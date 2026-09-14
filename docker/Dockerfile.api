@@ -1,0 +1,20 @@
+# ============================================================================
+# [Issue #07] Dockerfile - API Producer (Node.js Express + BullMQ)
+# Build context: root repo (taruh di docker/Dockerfile.api)
+# ============================================================================
+FROM node:20-alpine
+
+WORKDIR /app
+
+# 1. Install dependency API (layer ter-cache: hanya npm rebuild saat package berubah)
+COPY api/package.json ./api/package.json
+RUN npm --prefix api install --omit=dev
+
+# 2. Salin source API + frontend statis (disajikan oleh express.static)
+COPY api ./api
+COPY frontend ./frontend
+
+ENV NODE_ENV=production
+EXPOSE 3000
+
+CMD ["node", "api/src/server.js"]

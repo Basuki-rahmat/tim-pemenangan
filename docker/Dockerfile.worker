@@ -1,0 +1,18 @@
+# ============================================================================
+# [Issue #05] Dockerfile - Worker BullMQ (Batch Insert MySQL)
+# Build context: root repo (taruh di docker/Dockerfile.worker)
+# ============================================================================
+FROM node:20-alpine
+
+WORKDIR /app
+
+# 1. Install dependency worker
+COPY worker/package.json ./worker/package.json
+RUN npm --prefix worker install --omit=dev
+
+# 2. Salin source worker
+COPY worker ./worker
+
+ENV NODE_ENV=production
+
+CMD ["node", "worker/worker-db.js"]

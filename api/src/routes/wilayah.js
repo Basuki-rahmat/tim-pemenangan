@@ -42,6 +42,9 @@ router.get('/kabupaten', async (req, res) => {
   const t0 = Date.now();
   const provinsiId = req.query.provinsi_id || req.query.provinsi || null;
   const search = req.query.search || null;
+  if (!provinsiId) {
+    return res.json({ success: true, elapsed_ms: Date.now() - t0, source: `Read-Replica (${readHost})`, total: 0, data: [] });
+  }
   try {
     const [rows] = await readPool.query(
       `SELECT id, provinsi_id, kode, nama
@@ -67,6 +70,9 @@ router.get('/kecamatan', async (req, res) => {
   const t0 = Date.now();
   const kabupatenId = req.query.kabupaten_id || req.query.kabupaten || null;
   const search = req.query.search || null;
+  if (!kabupatenId) {
+    return res.json({ success: true, elapsed_ms: Date.now() - t0, source: `Read-Replica (${readHost})`, total: 0, data: [] });
+  }
   try {
     const [rows] = await readPool.query(
       `SELECT k.id, k.kabupaten_id, k.kode, k.nama, kb.nama AS kabupaten
@@ -93,6 +99,9 @@ router.get('/desa', async (req, res) => {
   const t0 = Date.now();
   const kecamatanId = req.query.kecamatan_id || req.query.kecamatan || null;
   const search = req.query.search || null;
+  if (!kecamatanId) {
+    return res.json({ success: true, elapsed_ms: Date.now() - t0, source: `Read-Replica (${readHost})`, total: 0, data: [] });
+  }
   try {
     const [rows] = await readPool.query(
       `SELECT d.id, d.kecamatan_id, d.kode, d.nama, k.nama AS kecamatan

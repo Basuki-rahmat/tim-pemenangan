@@ -14,9 +14,9 @@ Prototype localhost Laragon **sudah berjalan dan terverifikasi end-to-end** untu
 
 | Issue | Judul | Status | Implementasi |
 |---|---|---|---|
-| [#1](https://github.com/Basuki-rahmat/tim-pemenangan/issues/1) | Setup Skema Database Dinamis & Optimasi High-Throughput | ✅ Selesai | `db/schema.sql` → database `db_pemilu_c1` (utf8mb4/utf8mb4_unicode_ci), 5 tabel InnoDB, indeks BTREE minimal, tanpa FK CASCADE; `my.ini` Laragon aktif (buffer pool 4G, redo log 1G, `flush_log_at_trx_commit=2`, max_connections 5000) |
+| [#1](https://github.com/Basuki-rahmat/tim-pemenangan/issues/1) | Setup Skema Database Dinamis & Optimasi High-Throughput | ✅ Selesai | `db/schema.sql` → database `db_pemilu_c1` (utf8mb4/utf8mb4_unicode_ci), 5 tabel InnoDB, indeks BTREE minimal, tanpa FK CASCADE; `db/my.ini` Laragon aktif (buffer pool 2G, redo log 512M, `flush_log_at_trx_commit=2`, max_connections 1000) |
 | [#2](https://github.com/Basuki-rahmat/tim-pemenangan/issues/2) | Object Storage (S3-Compatible) & Presigned URL | ✅ Selesai | MinIO lokal `localhost:9000`, bucket `c1-uploads`; `GET /api/c1/upload-request` via `@aws-sdk/client-s3` (berlaku 300 detik) |
-| [#3](https://github.com/Basuki-rahmat/tim-pemenangan/issues/3) | Redis & Queue Producer (BullMQ) | ✅ Selesai | Redis Laragon `:6379` (PONG); antrean `c1-queue`; `removeOnComplete`/`removeOnFail` 100.000 |
+| [#3](https://github.com/Basuki-rahmat/tim-pemenangan/issues/3) | Redis & Queue Producer (BullMQ) | ✅ Selesai | Redis **8.10.1** `:6379` (di-upgrade dari Laragon 5.0.14 untuk BullMQ v5); antrean `c1-queue`; `removeOnComplete`/`removeOnFail` 100.000 |
 | [#4](https://github.com/Basuki-rahmat/tim-pemenangan/issues/4) | Endpoint API `POST /api/c1/submit` | ✅ Selesai | Validasi payload dinamis (`detail_suara` array), tanpa query MySQL di controller, respons `< 20ms`, langsung `queue.add('process-c1')` |
 | [#5](https://github.com/Basuki-rahmat/tim-pemenangan/issues/5) | Worker Antrean & Batch Insert MySQL | ✅ Selesai | `worker/worker-db.js`; buffer 500 job / flush 1 detik; 2 batch insert (`transaksi_c1` + `detail_suara`) dalam satu transaksi SQL + rollback |
 | [#6](https://github.com/Basuki-rahmat/tim-pemenangan/issues/6) | Pipeline OCR AI (Batch Inference) | ⏳ Belum | Butuh server GPU (NVIDIA T4) / worker Python — di luar lingkup prototipe lokal |
@@ -76,6 +76,31 @@ npm run stress
 ```
 
 > Deploy ke Biznet Gio: kode 100% identik — cukup ubah `.env` (`DB_HOST`/`REDIS_HOST` ke IP private VPC `10.0.x.x`, `S3_ENDPOINT` ke NEO Object Storage).
+
+### Jalankan dengan Docker Compose (Blueprint Multi-Server)
+
+Seluruh service (`api`, `worker`, `mysql`, `redis`, `minio`) dikontainerisasi agar hasilnya identik saat dideploy ke server cloud — cukup jalankan compose yang sama di mesin mana pun.
+
+```bash
+# Power: hanya Docker Desktop / Docker Engine
+docker compose up -d --build   # atau: npm run docker:up
+docker compose ps              # semua service harus "healthy"
+docker compose logs -f api worker   # lihat log producer + worker
+```
+
+Detail penting:
+
+- **Schema & seed MySQL** dipakai langsung dari dump `docker/mysql-init/` (01_schema.sql + 02_data.sql) — berisi struktur & data yang sama persis dengan DB lokal Laragon.
+- **Port host tidak bentrok Laragon:** MySQL → `3307`, Redis → `6380`, MinIO → `9002/9003`, API → `3001`. Semua bisa diubah via variabel di `docker-compose.yml`.
+- **Koneksi antar service memakai nama service Docker** (`mysql`, `redis`, `minio`) — ini yang membuat multi-server `docker compose` identik.
+- **Tuning MySQL pakai `docker/mysql-conf.cnf`** (Linux + `O_DIRECT`) — BUKAN `db/my.ini` (yang khusus Windows/Laragon).
+- `api` dan `worker` membaca lingkungan dari `docker-compose.yml`; `.env` lokal Laragon tidak disalin (lihat `.dockerignore`).
+
+```bash
+# Verifikasi stack Docker
+docker compose ps                      # 5 service: mysql redis minio api worker
+node e2e-test.js --api http://localhost:3001   # E2E terhadap instance Docker
+```
 
 ---
 

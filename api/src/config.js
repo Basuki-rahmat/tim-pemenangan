@@ -23,5 +23,9 @@ module.exports = {
     secretKey: process.env.S3_SECRET_KEY || 'minioadmin',
     bucket: process.env.S3_BUCKET || 'c1-uploads',
     forcePathStyle: (process.env.S3_FORCE_PATH_STYLE || 'true') === 'true'
-  }
+  },
+  // Endpoint publik S3 (dipakai untuk presigned URL & URL gambar yang diakses
+  // browser). Beda dengan s3.endpoint (internal, untuk operasi dari dalam
+  // container/VPC). Default: sama dengan s3.endpoint (kompatibel Laragon).
+  s3PublicEndpoint: process.env.S3_PUBLIC_ENDPOINT || process.env.S3_ENDPOINT || 'http://127.0.0.1:9000',
 };

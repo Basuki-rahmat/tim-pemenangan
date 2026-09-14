@@ -18,6 +18,7 @@ module.exports = {
   },
   s3: {
     endpoint: process.env.S3_ENDPOINT || 'http://127.0.0.1:9000',
-    bucket: process.env.S3_BUCKET || 'c1-uploads'
+    bucket: process.env.S3_BUCKET || 'c1-uploads',
+    publicEndpoint: process.env.S3_PUBLIC_ENDPOINT || process.env.S3_ENDPOINT || 'http://127.0.0.1:9000'
   }
 };
