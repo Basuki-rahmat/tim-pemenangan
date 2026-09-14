@@ -1,0 +1,31 @@
+# ============================================================================
+# Konfigurasi MySQL untuk Docker (Linux) — turunan Issue #01 tuning
+# Dipasang via /etc/mysql/conf.d/ di container. JANGAN gunakan db/my.ini
+# (itu tuning Windows Laragon). Di sini innodb_flush_method memakai O_DIRECT.
+# ============================================================================
+
+[mysqld]
+character-set-server = utf8mb4
+collation-server     = utf8mb4_unicode_ci
+
+# RAM container MySQL 8: sesuaikan innodb_buffer_pool_size dgn memori mesin
+innodb_buffer_pool_size         = 512M
+innodb_buffer_pool_instances    = 1
+innodb_flush_log_at_trx_commit  = 2
+innodb_redo_log_capacity        = 256M
+innodb_flush_method             = O_DIRECT
+innodb_doublewrite              = 1
+
+max_connections                 = 1000
+max_connect_errors              = 10000
+max_allowed_packet              = 64M
+wait_timeout                    = 600
+interactive_timeout             = 600
+skip-name-resolve               = ON
+
+# Charset sisi client/mysql
+[client]
+default-character-set = utf8mb4
+
+[mysql]
+default-character-set = utf8mb4

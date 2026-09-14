@@ -1,0 +1,19 @@
+# ============================================================================
+# Docker Build Context Exclusion
+# Context = root repo. Kecualikan yang tidak dibutuhkan untuk build API/Worker.
+# ============================================================================
+node_modules
+**/node_modules
+.git
+logs
+output
+*.sql
+docker/mysql-init
+minio-data
+data
+docs
+
+# Kredensial / secrets — JANGAN masuk image
+.env
+.env.*
+!.env.example

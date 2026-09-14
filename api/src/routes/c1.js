@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const { createPresignedUpload } = require('../s3');
-const { c1Queue } = require('../queue');
+const { c1Queue, isDuplicateSubmit } = require('../queue');
 
 const router = Router();
 const JOB_NAME = 'process-c1';
@@ -57,7 +57,8 @@ router.post('/submit', async (req, res) => {
       error: 'tps_id, kategori_pemilihan_id, dan image_key(s) wajib diisi (upload minimal 1 foto C1)'
     });
   }
-  if (keys.length>5) return res.status(400).json({ success:false, error:'maksimal 5 foto C1' });
+  // Perhatikan: keys sudah dibatasi 5 item via .slice(0,5) di atas,
+  // jadi tidak ada lagi pengecekan keys.length > 5 di sini.
   if (!Number.isInteger(suara_sah) || suara_sah < 0) {
     return res.status(400).json({ success: false, error: 'suara_sah harus integer >= 0' });
   }
@@ -117,9 +118,21 @@ router.post('/submit', async (req, res) => {
   };
 
   try {
+    // Idempotency: tolak duplikat pengiriman untuk (tps_id + kategori) yang sama
+    try {
+      const isDup = await isDuplicateSubmit(tps_id, kategori_pemilihan_id, body.idempotency_key);
+      if (isDup) {
+        return res.status(409).json({ success: false, error: 'Data untuk TPS & kategori ini sudah dikirim (duplikat)' });
+      }
+    } catch (dupErr) {
+      // Redis dedupe down → jangan blokir pengiriman, biarkan queue jadi lapis ke-2
+      console.error('[c1] dedupe error (dilewati):', dupErr.message);
+    }
     await c1Queue.add(JOB_NAME, payload, {
       removeOnComplete: 100000,
-      removeOnFail: 100000
+      removeOnFail: 100000,
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 2000 }
     });
     res.json({
       success: true,

@@ -15,15 +15,19 @@ const pool = mysql.createPool({
   namedPlaceholders: false
 });
 
+// buffer berisi { job, resolve, reject } — job HANYA di-ack oleh BullMQ
+// setelah barisnya benar-benar tertulis ke MySQL (resolve), atau ditolak saat
+// insert gagal permanen (reject -> BullMQ akan me-retry sesuai `attempts`).
 let buffer = [];
 let lastFlushAt = Date.now();
 let totalInserted = 0;
+let flushRunning = null;
 
 const TX_COLS = 'id,tps_id,kategori_pemilihan_id,jumlah_dpt,jumlah_hadir,jumlah_surat_suara,surat_baik,surat_rusak,surat_cadangan,total_suara_sah,total_suara_tidak_sah,image_url,image_urls,status_ocr';
 const DET_COLS = 'transaksi_c1_id,kandidat_id,jumlah_suara';
 
 function imageUrl(key) {
-  return `${config.s3.endpoint}/${config.s3.bucket}/${encodeURIComponent(key)}`;
+  return `${config.s3.publicEndpoint}/${config.s3.bucket}/${encodeURIComponent(key)}`;
 }
 
 async function insertBatch(batch) {
@@ -77,19 +81,41 @@ async function insertBatch(batch) {
 
 async function flush() {
   if (buffer.length === 0) return 0;
-  const batch = buffer.splice(0, buffer.length);
+  if (flushRunning) return flushRunning;
+  const items = buffer.splice(0, buffer.length);
+  flushRunning = doFlush(items).finally(() => { flushRunning = null; });
+  return flushRunning;
+}
+
+async function doFlush(items) {
   const t0 = Date.now();
+  const jobs = items.map((it) => it.job);
   try {
-    const totalSuara = await insertBatch(batch);
-    totalInserted += batch.length;
+    const totalSuara = await insertBatch(jobs);
+    totalInserted += items.length;
+    items.forEach((it) => it.resolve());
     console.log(
-      `[FLUSH] BATCH INSERT ${batch.length} transaksi + ${detailCount(batch)} detail suara` +
-      ` | durasi ${Date.now() - t0}ms | total ${totalInserted}`
+      `[FLUSH] BATCH INSERT ${items.length} transaksi + ${detailCount(jobs)} detail suara` +
+      ` (${totalSuara} suara) | durasi ${Date.now() - t0}ms | total ${totalInserted}`
     );
-    return batch.length;
+    return items.length;
   } catch (err) {
-    console.error('[FLUSH] GAGAL batch insert:', err.message);
-    buffer.unshift(...batch);
+    console.error(`[FLUSH] GAGAL batch (${items.length}):`, err.message);
+    console.error('[FLUSH] Isolasi per-job agar satu job buruk tidak menggagalkan seluruh batch...');
+    let ok = 0;
+    for (const it of items) {
+      try {
+        await insertBatch([it.job]);
+        totalInserted += 1;
+        ok += 1;
+        it.resolve();
+      } catch (e2) {
+        // Job benar-benar akan ditolak -> masukkan kembali ke antrean utk retry
+        console.error(`[FLUSH] JOB ${it.job.id} POISON/tidak tertulis ke DB:`, e2.message);
+        it.reject(e2);
+      }
+    }
+    console.log(`[FLUSH] Isolasi selesai: ${ok}/${items.length} terselamatkan, sisanya diretry oleh BullMQ`);
     return 0;
   } finally {
     lastFlushAt = Date.now();
@@ -101,21 +127,26 @@ function detailCount(batch) {
 }
 
 const worker = new Worker(config.queueName, async (job) => {
-  buffer.push(job);
-  if (buffer.length >= config.batchSize) {
-    await flush();
-  }
+  // Return Promise yang HANYA resolve setelah flush() berhasil tertulis ke DB
+  return new Promise((resolve, reject) => {
+    buffer.push({ job, resolve, reject });
+    if (buffer.length >= config.batchSize) flush();
+  });
 }, {
   connection: config.redis,
   concurrency: 1,
-  prefix: 'bull'
+  prefix: 'bull',
+  // BullMQ retries otomatis jika processor reject (poison job)
+  // Job bertahan sebagai "active" di Redis sampai flush+resolve -> tidak ada data loss
+  lockDuration: 60000,
+  stalledInterval: 30000
 });
 
 worker.on('completed', (job) => {
-  if (job.returnvalue !== undefined) console.log(`[DONE] job ${job.id} diproses`);
+  console.log(`[DONE] job ${job.id} TERTULIS ke MySQL`);
 });
 worker.on('failed', (job, err) => {
-  console.error(`[FAIL] job ${job.id} gagal:`, err.message);
+  console.error(`[FAIL] job ${job.id} gagal setelah retries:`, err.message);
 });
 worker.on('error', (err) => {
   console.error('[worker] error:', err.message);
@@ -123,7 +154,10 @@ worker.on('error', (err) => {
 
 const flushTimer = setInterval(async () => {
   if (buffer.length > 0 && (Date.now() - lastFlushAt) >= config.flushIntervalMs) {
-    await flush();
+    // Drain sisa buffer dalam chunks sebesar batchSize
+    while (buffer.length > 0 && !flushRunning) {
+      await flush();
+    }
   }
 }, 200);
 
