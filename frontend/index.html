@@ -9,175 +9,410 @@
   <script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
   <style>
     :root {
-      --brand: #d40511; --brand-dark: #a0040d; --bg: #f8fafc; --card: #ffffff;
-      --text: #0f172a; --muted: #64748b; --border: #e2e8f0; --ok: #10b981; --err: #ef4444;
-      --accent: #2563eb; --side-w: 250px; --side-bg: #0f172a;
+      --brand: #d40511; --brand-dark: #a0040d; --brand-soft: #fef2f2; --brand-ring: rgba(212,5,17,.18);
+      --bg: #f1f5f9; --card: #ffffff; --card-soft: #f8fafc;
+      --text: #0f172a; --muted: #64748b; --muted-2: #94a3b8;
+      --border: #e2e8f0; --border-strong: #cbd5e1;
+      --ok: #059669; --ok-soft:#ecfdf5; --err: #dc2626; --err-soft:#fef2f2;
+      --accent: #2563eb; --accent-soft:#eff6ff;
+      --side-w: 268px; --side-bg: #0f172a; --side-bg-2: #16213a;
+      --radius: 16px; --radius-sm: 10px; --radius-lg: 20px;
+      --shadow-sm: 0 1px 2px rgba(15,23,42,.05), 0 2px 8px rgba(15,23,42,.04);
+      --shadow: 0 4px 12px rgba(15,23,42,.06), 0 12px 28px rgba(15,23,42,.08);
+      --shadow-lg: 0 8px 24px rgba(15,23,42,.10), 0 20px 48px rgba(15,23,42,.10);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+    html { scroll-behavior: smooth; }
+    body { font-family: "Inter","Segoe UI",system-ui,-apple-system,sans-serif; background: radial-gradient(1200px 600px at 40% -10%, #fff 0%, var(--bg) 55%); color: var(--text); -webkit-font-smoothing: antialiased; letter-spacing: -.01em; }
+    ::selection{ background: var(--brand); color:#fff; }
+    /* scrollbar */
+    *::-webkit-scrollbar{ width:8px; height:8px; }
+    *::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:999px; }
+    *::-webkit-scrollbar-thumb:hover{ background:#94a3b8; }
 
     /* ===== Topbar ===== */
     .topbar {
       position: sticky; top: 0; z-index: 40;
-      background: linear-gradient(135deg, #1e293b, #0f172a);
-      color: #fff; padding: 12px 18px;
-      border-bottom: 3px solid var(--brand);
-      display: flex; align-items: center; gap: 14px;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #1e293b 100%);
+      color: #fff; padding: 14px 20px 14px 22px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      display: flex; align-items: center; gap: 16px;
+      box-shadow: 0 1px 0 rgba(0,0,0,.12), 0 6px 20px rgba(15,23,42,.12);
+      backdrop-filter: blur(8px);
     }
+    .topbar::after{ content:""; position:absolute; left:0; right:0; bottom:-1px; height:3px; background: linear-gradient(90deg,var(--brand),#ff6b6b); opacity:.95; }
     .hamburger {
-      background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2);
-      color: #fff; border-radius: 8px; font-size: 18px; line-height: 1;
-      padding: 8px 12px; cursor: pointer; flex-shrink: 0;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+      color: #e2e8f0; border-radius: 10px; font-size: 16px; line-height: 1;
+      padding: 9px 12px; cursor: pointer; flex-shrink: 0; transition:.18s;
     }
-    .hamburger:hover { background: rgba(255,255,255,.22); }
-    .topbar h1 { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
-    .topbar p { font-size: 12px; color: #94a3b8; margin-top: 2px; }
-    .top-user { margin-left: auto; font-size: 12.5px; color: #cbd5e1; white-space: nowrap; }
-    .top-user .badge { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.15); color: #fff; }
+    .hamburger:hover { background: rgba(255,255,255,.16); color:#fff; transform: translateY(-1px); }
+    .topbar h1 { font-size: 15.5px; font-weight: 800; letter-spacing: -.4px; display:flex; align-items:center; gap:10px; }
+    .topbar h1::before{ content:""; width:10px; height:10px; border-radius:999px; background: var(--brand); box-shadow: 0 0 0 6px rgba(212,5,17,.15); }
+    .topbar p { font-size: 12px; color: #94a3b8; margin-top: 3px; font-weight:500; }
+    .top-user { margin-left: auto; font-size: 12.5px; color: #cbd5e1; white-space: nowrap; display:flex; align-items:center; gap:8px; }
+    .top-user .badge { background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.14); color: #f1f5f9; backdrop-filter: blur(6px); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
 
     /* ===== Sidebar ===== */
     .sidebar {
       position: fixed; top: 0; left: 0; bottom: 0; width: var(--side-w);
-      background: var(--side-bg); color: #cbd5e1; z-index: 50;
+      background: linear-gradient(180deg, var(--side-bg) 0%, var(--side-bg-2) 100%); color: #cbd5e1; z-index: 50;
       display: flex; flex-direction: column;
-      transition: transform .25s ease;
+      transition: transform .28s cubic-bezier(.22,1,.36,1);
+      border-right: 1px solid rgba(255,255,255,.06);
+      box-shadow: 4px 0 24px rgba(0,0,0,.18);
     }
-    .brand { padding: 18px 16px 14px; border-bottom: 1px solid rgba(255,255,255,.1); }
-    .brand b { color: #fff; font-size: 15px; display: block; }
-    .brand small { color: #94a3b8; font-size: 11.5px; }
-    .side-nav { flex: 1; overflow-y: auto; padding: 10px 12px; }
-    .side-nav .nav-tabs { flex-direction: column; width: 100%; }
-    .side-nav .tab-btn { width: 100%; text-align: left; padding: 11px 14px; font-size: 13.5px; }
-    .side-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin: 12px 6px 4px; }
-    .side-footer { padding: 14px; border-top: 1px solid rgba(255,255,255,.1); font-size: 12.5px; display: flex; flex-direction: column; gap: 8px; }
-    .side-footer .btn-ghost { background: rgba(255,255,255,.1); color: #fff; font-size: 12px; }
-    body:not(.logged-in) .tab-btn[data-admin]::after { content: ' 🔒'; opacity: .7; }
+    .brand { padding: 20px 18px 18px; border-bottom: 1px solid rgba(255,255,255,.07); position:relative; overflow:hidden; }
+    .brand::after{ content:""; position:absolute; inset:auto -20% -40% -20%; height:80px; background: radial-gradient(400px 80px at 30% 0%, rgba(212,5,17,.18), transparent 70%); pointer-events:none; }
+    .brand b { color: #fff; font-size: 15.5px; display:flex; align-items:center; gap:9px; font-weight:800; letter-spacing:-.3px; }
+    .brand b::before{ content:"🗳️"; font-size:18px; filter: drop-shadow(0 2px 6px rgba(212,5,17,.35)); }
+    .brand small { color: #94a3b8; font-size: 11.5px; font-weight:600; letter-spacing:.2px; display:block; margin-top:6px; padding-left:27px; }
+    .side-nav { flex: 1; overflow-y: auto; padding: 14px 12px 10px; }
+    .side-nav .nav-tabs { flex-direction: column; width: 100%; gap:5px; }
+    .side-nav .tab-btn { width: 100%; text-align: left; padding: 11px 13px 11px 14px; font-size: 13px; border-radius: 12px; display:flex; align-items:center; gap:10px; line-height:1.2; border:1px solid transparent; position:relative; overflow:hidden; }
+    .side-nav .tab-btn::before{ content:""; position:absolute; left:0; top:50%; transform: translateY(-50%) scaleY(0); width:3px; height: 22px; background: var(--brand); border-radius: 0 6px 6px 0; transition:.18s; }
+    .side-nav .tab-btn:hover{ background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.08); color:#fff; }
+    .side-nav .tab-btn.active{ background: linear-gradient(135deg, var(--brand) 0%, #e53b3b 100%); border-color: rgba(255,255,255,.12); color:#fff; box-shadow: 0 4px 16px rgba(212,5,17,.32), inset 0 1px 0 rgba(255,255,255,.16); }
+    .side-nav .tab-btn.active::before{ transform: translateY(-50%) scaleY(1); background:#fff; }
+    .side-label { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.1px; color: #64748b; margin: 16px 8px 8px; display:flex; align-items:center; gap:8px; }
+    .side-label::after{ content:""; flex:1; height:1px; background: rgba(255,255,255,.07); }
+    .side-footer { padding: 14px 14px 16px; border-top: 1px solid rgba(255,255,255,.08); font-size: 12.5px; display: flex; flex-direction: column; gap: 10px; background: rgba(255,255,255,.02); }
+    .side-footer #sideUser{ display:flex; align-items:center; gap:8px; color:#e2e8f0; font-weight:600; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .side-footer .btn-ghost { background: rgba(255,255,255,.09); color: #fff; font-size: 12.5px; border:1px solid rgba(255,255,255,.10); border-radius:12px; padding:9px 12px; width:100%; transition:.18s; }
+    .side-footer .btn-ghost:hover{ background: rgba(255,255,255,.14); transform: translateY(-1px); }
+    body:not(.logged-in) .tab-btn[data-admin]::after { content: ' 🔒'; opacity: .55; margin-left:auto; font-size:11px; }
 
     .main { margin-left: var(--side-w); min-height: 100vh; transition: margin .25s ease; }
     body.side-collapsed .main { margin-left: 0; }
     body.side-collapsed .sidebar { transform: translateX(-100%); }
-    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 45; display: none; }
+    .overlay { position: fixed; inset: 0; background: rgba(2,6,23,.48); backdrop-filter: blur(2px); z-index: 45; display: none; }
 
-    .nav-tabs { display: flex; gap: 8px; }
+    .nav-tabs { display: flex; gap: 8px; flex-wrap:wrap; }
     .tab-btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: #cbd5e1;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-weight: 600;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-weight: 700;
       font-size: 13px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all .18s ease;
+      box-shadow: var(--shadow-sm);
     }
-    .tab-btn:hover { background: rgba(255, 255, 255, 0.2); color: #fff; }
-    .tab-btn.active { background: var(--brand); border-color: var(--brand); color: #fff; }
-    /* level tabs di dalam konten terang */
-    #wLevelTabs .tab-btn { background: #eef0f3; border-color: var(--border); color: var(--text); }
-    #wLevelTabs .tab-btn:hover { background: #e2e8f0; color: var(--text); }
-    #wLevelTabs .tab-btn.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .tab-btn:hover { background: #fff; color: var(--text); border-color: var(--border-strong); transform: translateY(-1px); box-shadow: var(--shadow); }
+    .tab-btn.active { background: var(--brand); border-color: var(--brand); color: #fff; box-shadow: 0 6px 18px rgba(212,5,17,.28); }
+    /* level tabs di dalam konten terang - pill halus */
+    #wLevelTabs{ gap:6px; }
+    #wLevelTabs .tab-btn { background: var(--card-soft); border-color: var(--border); color: var(--text); box-shadow:none; padding:7px 13px; font-size:12.5px; }
+    #wLevelTabs .tab-btn:hover { background: #fff; }
+    #wLevelTabs .tab-btn.active { background: var(--text); border-color: var(--text); color: #fff; }
 
-    .wrap { max-width: 1180px; margin: 24px auto; padding: 0 16px; }
-    .grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 20px; }
+    .wrap { max-width: 1240px; margin: 26px auto; padding: 0 18px; }
+    .grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 18px; }
     @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
 
     .card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 22px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      border-radius: var(--radius);
+      padding: 22px 22px 20px;
+      box-shadow: var(--shadow-sm);
+      position:relative;
+      overflow:hidden;
+      transition: box-shadow .18s, transform .18s, border-color .18s;
     }
-    .card h2 { font-size: 16px; margin-bottom: 14px; font-weight: 700; color: #1e293b; }
+    .card:hover{ box-shadow: var(--shadow); border-color: #dbe2ef; }
+    .card h2 { font-size: 14.5px; margin-bottom: 16px; font-weight: 800; color: #0f172a; letter-spacing:-.25px; display:flex; align-items:center; gap:10px; padding-bottom:12px; border-bottom:1px solid #f1f5f9; }
+    .card h2::before{ content:""; width:28px; height:28px; border-radius:9px; background: var(--brand-soft); border:1px solid #fee2e2; display:inline-flex; align-items:center; justify-content:center; font-size:13px; }
+    /* ikon per section */
+    #tabDashAdmin .card h2::before{ content:"📈"; background:#eff6ff; border-color:#dbeafe; }
+    #tabAdmin .card h2::before{ content:"🛠️"; }
+    #tabKandidat .card h2::before{ content:"🗳️"; background:#f0fdf4; border-color:#dcfce7; }
+    #tabDapil .card h2::before{ content:"🗺️"; background:#fef3c7; border-color:#fde68a; }
+    #tabTps .card h2::before{ content:"📍"; background:#fef2f2; border-color:#fecaca; }
+    #tabSaksi .card h2::before{ content:"👥"; background:#f5f3ff; border-color:#ddd6fe; }
 
-    label { display: block; font-size: 12px; font-weight: 600; margin: 12px 0 4px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    label { display: block; font-size: 10.5px; font-weight: 800; margin: 14px 0 6px; color: #334155; text-transform: uppercase; letter-spacing: .7px; }
     input, select, button { font: inherit; }
-    input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: #fff; font-size: 14px; }
-    input:focus, select:focus { outline: 2px solid var(--brand); border-color: transparent; }
+    input, select, textarea { width: 100%; padding: 10.5px 12px; border: 1px solid var(--border); border-radius: 11px; background: #f8fafc; font-size: 14px; font-weight:500; color:var(--text); transition:.16s; font-family: inherit; }
+    input::placeholder, textarea::placeholder{ color:#94a3b8; font-weight:400; }
+    input:hover, select:hover, textarea:hover{ background:#fff; border-color:#cbd5e1; }
+    input:focus, select:focus, textarea:focus { outline: none; background:#fff; border-color: var(--brand); box-shadow: 0 0 0 4px var(--brand-ring); }
 
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .kandidat { border: 1px dashed var(--border); border-radius: 8px; padding: 12px; margin-top: 10px; background: #f8fafc; }
+    .row2[style*="1fr 1fr 1fr"]{ gap:12px; }
+    .kandidat { border: 1px dashed #cbd5e1; border-radius: 12px; padding: 14px; margin-top: 12px; background: linear-gradient(180deg,#f8fafc, #fff); }
     .kandidat .baris { display: grid; grid-template-columns: 1.4fr 1fr auto; gap: 8px; align-items: center; margin-top: 8px; }
 
-    .btn { display: inline-block; border: 0; cursor: pointer; padding: 11px 18px; border-radius: 8px; font-weight: 700; }
-    .btn-primary { background: var(--brand); color: #fff; width: 100%; margin-top: 18px; font-size: 14px; }
-    .btn-primary:hover { background: var(--brand-dark); }
-    .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
-    .btn-ghost { background: #eef0f3; color: var(--text); font-size: 12px; padding: 7px 12px; }
-    .badge { display:inline-block; background:#e2e8f0; border-radius:999px; padding:3px 10px; font-size:11px; font-weight:700; }
-    .statline { display:flex; gap:16px; flex-wrap:wrap; margin-top:8px; font-size:12.5px; color: var(--muted); }
+    .btn { display: inline-flex; align-items:center; justify-content:center; gap:7px; border: 1px solid transparent; cursor: pointer; padding: 10px 16px; border-radius: 11px; font-weight: 750; font-size:13px; letter-spacing:-.15px; transition:.16s; user-select:none; white-space:nowrap; }
+    .btn:active{ transform: scale(.98); }
+    .btn-primary { background: linear-gradient(135deg, var(--brand) 0%, #b91c1c 100%); color: #fff; width: 100%; margin-top: 18px; font-size: 14px; box-shadow: 0 8px 20px rgba(212,5,17,.22), inset 0 1px 0 rgba(255,255,255,.18); border-color: rgba(0,0,0,.04); }
+    .btn-primary:hover { background: linear-gradient(135deg, #e0101e 0%, #991b1b 100%); transform: translateY(-1px); box-shadow: 0 10px 24px rgba(212,5,17,.28); }
+    .btn-primary:disabled { opacity: .55; cursor: not-allowed; transform:none; box-shadow:none; }
+    .btn-ghost { background: #fff; color: var(--text); font-size: 12.5px; padding: 8px 13px; border:1px solid var(--border); box-shadow: var(--shadow-sm); font-weight:700; }
+    .btn-ghost:hover { background: #f8fafc; border-color: var(--border-strong); transform: translateY(-1px); box-shadow: var(--shadow); color:#0f172a; }
+    .btn-ghost:active{ transform: translateY(0); }
+    .badge { display:inline-flex; align-items:center; gap:5px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:999px; padding:4px 10px; font-size:11px; font-weight:750; letter-spacing:.1px; color:#334155; }
+    .badge::before{ content:""; width:6px; height:6px; border-radius:999px; background:#94a3b8; }
+    .statline { display:flex; gap:10px 16px; flex-wrap:wrap; margin-top:10px; font-size:12.5px; color: var(--muted); background:#f8fafc; border:1px solid #f1f5f9; border-radius:11px; padding:10px 12px; }
+    /* foto statline khusus kandidat - presisi di mobile */
+    .k-foto-statline{ display:flex; align-items:center; gap:6px; margin-top:8px; font-size:12px; color:var(--muted); font-weight:600; }
+    .k-foto-statline::before{ content:"📷"; font-size:13px; opacity:.85; }
+    input[type="file"]{ padding:7px; background:#fff; border:1.5px dashed #cbd5e1; border-radius:11px; cursor:pointer; font-size:13px; }
+    input[type="file"]:hover{ border-color: var(--brand); background: var(--brand-soft); }
+    input[type="file"]::file-selector-button{ background: var(--text); color:#fff; border:0; border-radius:8px; padding:7px 12px; font-weight:700; font-size:12px; cursor:pointer; margin-right:10px; transition:.15s; }
+    input[type="file"]::file-selector-button:hover{ background:#1e293b; }
 
     #log {
       margin-top: 14px;
-      background: #0f172a;
+      background: #0b1222;
       color: #94a3b8;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 14px;
-      font-family: Consolas, monospace;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 12.5px;
       max-height: 380px;
       overflow: auto;
       white-space: pre-wrap;
       word-break: break-all;
+      border:1px solid #1e293b;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
     }
-    #log .err { color: #f87171; }
+    #log .err { color: #f87171; font-weight:700; }
     #log .ok { color: #34d399; }
     #log .info { color: #60a5fa; }
 
     /* DASHBOARD STYLES */
     .metric-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 22px;
     }
     .metric-card {
-      background: #fff;
+      background: linear-gradient(180deg, #fff 0%, #fcfdff 100%);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 18px 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      border-radius: var(--radius);
+      padding: 18px 18px 16px;
+      box-shadow: var(--shadow-sm);
+      position:relative; overflow:hidden;
+      transition:.16s;
     }
-    .metric-card .title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; }
-    .metric-card .value { font-size: 26px; font-weight: 800; color: #0f172a; margin-top: 6px; }
-    .metric-card .desc { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+    .metric-card:hover{ transform: translateY(-2px); box-shadow: var(--shadow); border-color:#dbeafe; }
+    .metric-card::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background: linear-gradient(180deg,var(--brand),#f97316); opacity:.95; }
+    .metric-card:nth-child(2)::before{ background: linear-gradient(180deg,#2563eb,#06b6d4); }
+    .metric-card:nth-child(3)::before{ background: linear-gradient(180deg,#059669,#10b981); }
+    .metric-card:nth-child(4)::before{ background: linear-gradient(180deg,#e11d48,#f59e0b); }
+    .metric-card:nth-child(5)::before{ background: linear-gradient(180deg,#7c3aed,#06b6d4); }
+    .metric-card:nth-child(6)::before{ background: linear-gradient(180deg,#0f172a,#475569); }
+    .metric-card .title { font-size: 10.5px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing:.8px; display:flex; align-items:center; gap:7px; }
+    .metric-card .value { font-size: 28px; font-weight: 900; color: #0f172a; margin-top: 8px; letter-spacing:-.8px; line-height:1; }
+    .metric-card .desc { font-size: 11.5px; color: var(--muted); margin-top: 6px; font-weight:600; }
 
-    .chart-box { margin-top: 20px; display: flex; flex-direction: column; gap: 16px; }
-    .candidate-row { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
-    .candidate-header { display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; margin-bottom: 8px; gap: 8px; flex-wrap: wrap; }
-    .progress-bar-wrap { background: #e2e8f0; height: 12px; border-radius: 999px; overflow: hidden; }
-    .progress-bar { height: 100%; background: linear-gradient(90deg, #dc2626, #ef4444); border-radius: 999px; transition: width 0.6s ease; }
-    .progress-bar.blue { background: linear-gradient(90deg, #2563eb, #3b82f6); }
-    .progress-bar.emerald { background: linear-gradient(90deg, #059669, #10b981); }
+    .chart-box { margin-top: 18px; display: flex; flex-direction: column; gap: 12px; }
+    .candidate-row { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow-sm); transition:.15s; }
+    .candidate-row:hover{ border-color:#cbd5e1; box-shadow: var(--shadow); }
+    .candidate-header { display: flex; justify-content: space-between; font-weight: 800; font-size: 13.5px; margin-bottom: 10px; gap: 8px; flex-wrap: wrap; }
+    .progress-bar-wrap { background: #eef2f7; height: 10px; border-radius: 999px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,.06); }
+    .progress-bar { height: 100%; background: linear-gradient(90deg, #dc2626, #ef4444); border-radius: 999px; transition: width 0.6s cubic-bezier(.22,1,.36,1); }
+    .progress-bar.blue { background: linear-gradient(90deg, #1d4ed8, #3b82f6); }
+    .progress-bar.emerald { background: linear-gradient(90deg, #047857, #10b981); }
 
-    .audit-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
-    .audit-table th, .audit-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
-    .audit-table th { background: #f1f5f9; font-size: 11px; text-transform: uppercase; color: var(--muted); }
-    .audit-table a { color: var(--accent); text-decoration: none; font-weight: 600; }
-    .audit-table a:hover { text-decoration: underline; }
+    .audit-table { width: 100%; border-collapse: separate; border-spacing:0; margin-top: 14px; font-size: 13px; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:#fff; box-shadow: var(--shadow-sm); }
+    .audit-table th, .audit-table td { padding: 11px 12px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+    .audit-table th { background: #f8fafc; font-size: 10.5px; font-weight:800; text-transform: uppercase; letter-spacing:.6px; color: #475569; white-space:nowrap; position:sticky; top:0; }
+    .audit-table tr:last-child td{ border-bottom:none; }
+    .audit-table tbody tr{ transition:.12s; }
+    .audit-table tbody tr:hover{ background: #f8fafc; }
+    .audit-table a { color: var(--accent); text-decoration: none; font-weight: 700; }
+    .audit-table a:hover { text-decoration: underline; text-underline-offset:3px; }
 
-    .tab-content { display: none; }
+    .tab-content { display: none; animation: fadeIn .22s ease; }
     .tab-content.active { display: block; }
+    @keyframes fadeIn{ from{ opacity:0; transform: translateY(4px);} to{ opacity:1; transform:none; } }
 
     /* ===== Peta TPS (Leaflet) ===== */
-    #tpsMap { height: 320px; border-radius: 10px; border: 1px solid var(--border); z-index: 1; }
-    #tpsMapWrap { margin-top: 10px; }
-    .map-tools { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
-    .map-tools input { flex: 2; min-width: 160px; }
-    @media (max-width: 900px) { #tpsMap { height: 260px; } }
+    #tpsMap, #saksiMap { height: 340px; border-radius: 14px; border: 1px solid var(--border); z-index: 1; box-shadow: var(--shadow); overflow:hidden; }
+    #tpsMapWrap, #saksiMapWrap { margin-top: 12px; background:#fff; border:1px solid var(--border); border-radius:14px; padding:10px; box-shadow: var(--shadow-sm); }
+    #tpsMapWrap #tpsMap, #saksiMapWrap #saksiMap{ border:none; border-radius:10px; box-shadow:none; }
+    .map-tools { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .map-tools input { flex: 2; min-width: 170px; background:#fff; }
+    .map-tools .btn-ghost{ padding:9px 12px; }
+    @media (max-width: 900px) { #tpsMap, #saksiMap { height: 280px; } }
 
-    /* ===== Responsif ===== */
+    /* ===== Modal Kandidat (foto & detail) ===== */
+    .k-modal{ position:fixed; inset:0; z-index:90; display:none; align-items:center; justify-content:center; background: rgba(15,23,42,.62); backdrop-filter: blur(6px); padding: 16px; }
+    .k-modal.open{ display:flex; animation: fadeIn .18s ease; }
+    .k-modal-card{ background:#fff; border-radius:18px; box-shadow: var(--shadow-lg); max-width:520px; width:100%; max-height:88vh; overflow:auto; border:1px solid var(--border); position:relative; }
+    .k-modal-head{ position:sticky; top:0; z-index:1; background:#fff; border-bottom:1px solid #f1f5f9; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; border-radius:18px 18px 0 0; }
+    .k-modal-head h3{ font-size:14px; font-weight:800; letter-spacing:-.2px; color:#0f172a; display:flex; align-items:center; gap:8px; }
+    .k-modal-head small{ color:var(--muted); font-weight:600; font-size:12px; }
+    .k-modal-close{ width:34px; height:34px; border-radius:10px; border:1px solid var(--border); background:#f8fafc; cursor:pointer; font-size:16px; line-height:1; display:grid; place-items:center; transition:.15s; }
+    .k-modal-close:hover{ background:#fff; border-color: var(--border-strong); transform: translateY(-1px); }
+    .k-modal-body{ padding:16px; }
+    .k-modal-foto{ width:100%; border-radius:12px; object-fit:contain; max-height:62vh; background:#f8fafc; border:1px solid var(--border); display:block; }
+    .k-detail-grid{ display:grid; grid-template-columns: 140px 1fr; gap:16px; }
+    @media(max-width:560px){ .k-detail-grid{ grid-template-columns:1fr; } }
+    .k-detail-foto{ width:100%; aspect-ratio:1; object-fit:cover; border-radius:14px; border:1px solid var(--border); background:#f8fafc; }
+    .k-detail-meta{ display:grid; gap:9px; }
+    .k-detail-row{ display:flex; gap:8px; font-size:13px; line-height:1.4; }
+    .k-detail-row b{ min-width:92px; color:#475569; font-size:11px; text-transform:uppercase; letter-spacing:.5px; padding-top:1px; }
+    .k-detail-row span{ color:#0f172a; font-weight:600; flex:1; }
+    .k-detail-ket{ margin-top:12px; padding:12px; background:#f8fafc; border:1px solid #f1f5f9; border-radius:11px; font-size:13px; color:#334155; white-space:pre-wrap; word-break:break-word; line-height:1.6; }
+    .k-detail-ket.empty{ color:var(--muted); font-style:italic; }
+    .k-modal-actions{ display:flex; gap:8px; justify-content:flex-end; padding:12px 16px 16px; border-top:1px solid #f1f5f9; }
+
+    /* kandidat table foto hover */
+    .k-foto-thumb{ width:40px; height:40px; object-fit:cover; border-radius:9px; border:1px solid var(--border); cursor:pointer; transition:.15s; box-shadow: var(--shadow-sm); }
+    .k-foto-thumb:hover{ transform: scale(1.06); box-shadow: var(--shadow); border-color: var(--border-strong); }
+    .k-detail-btn{ padding:6px 9px !important; font-size:12px !important; border-radius:9px !important; }
+
+    /* override badge dot untuk card kandidat agar presisi */
+    .kand-card .badge::before{ display:none; }
+    .kand-card-head .badge{ padding:4px 8px; font-size:10.5px; letter-spacing:.2px; border-width:1px; }
+
+    /* kandidat cards untuk mobile - presisi */
+    #kKandTableWrap{ display:block; }
+    #kKandCards{ display:none; }
+    .kand-cards{ display:grid; grid-template-columns:1fr; gap:12px; margin-top:14px; }
+    .kand-card{ background:#fff; border:1px solid var(--border); border-radius:16px; padding:14px; box-shadow: var(--shadow-sm); display:flex; gap:14px; align-items:flex-start; transition:.16s; }
+    .kand-card:hover{ box-shadow: var(--shadow); border-color:#dbe2ef; transform: translateY(-1px); }
+    .kand-card-foto{ width:72px; height:72px; object-fit:cover; border-radius:13px; border:1px solid var(--border); flex-shrink:0; cursor:pointer; background:#f8fafc; box-shadow: var(--shadow-sm); }
+    .kand-card-foto.no-foto{ display:grid; place-items:center; font-size:22px; color:var(--muted-2); background: linear-gradient(135deg,#f8fafc,#eef2f7); }
+    .kand-card-main{ flex:1; min-width:0; }
+    .kand-card-head{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:6px; }
+    .kand-card-head .badge{ font-size:10.5px; padding:3px 8px; }
+    .kand-card-name{ font-size:15px; font-weight:800; color:#0f172a; letter-spacing:-.3px; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .kand-card-partai{ font-size:12.5px; color:var(--muted); font-weight:600; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .kand-card-meta{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+    .kand-card-meta .meta-chip{ font-size:11px; font-weight:700; background:#f8fafc; border:1px solid var(--border); border-radius:999px; padding:4px 9px; color:#334155; display:inline-flex; align-items:center; gap:4px; }
+    .kand-card-meta .meta-chip b{ color:var(--muted); font-weight:800; font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; }
+    .kand-card-ket{ margin-top:8px; font-size:12.5px; color:#475569; background:#f8fafc; border:1px solid #f1f5f9; border-radius:10px; padding:8px 10px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word; }
+    .kand-card-ket.empty{ text-align:center; background:#fff; border:1px dashed #cbd5e1; color:var(--muted); font-style:italic; display:block; }
+    .kand-card-actions{ display:flex; gap:8px; margin-top:10px; }
+    .kand-card-actions .btn{ flex:1; padding:8px 10px; font-size:12.5px; border-radius:10px; }
+
+    /* dashboard presisi */
+    .queue-pill{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; font-size:11px; font-weight:800; border:1px solid var(--border); background:#fff; }
+    .queue-pill.waiting{ background:#fef3c7; border-color:#fde68a; color:#92400e; }
+    .queue-pill.active{ background:#dbeafe; border-color:#bfdbfe; color:#1e40af; }
+    .queue-pill.completed{ background:#dcfce7; border-color:#bbf7d0; color:#14532d; }
+    .queue-pill.failed{ background:#fee2e2; border-color:#fecaca; color:#991b1b; }
+    .queue-pill.delayed{ background:#f3f4f6; border-color:#e5e7eb; color:#374151; }
+    .queue-pill b{ font-size:13px; letter-spacing:-.3px; }
+    .master-item{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 11px; border-radius:11px; border:1px solid var(--border); background: linear-gradient(180deg,#fff,#fcfdff); box-shadow: var(--shadow-sm); }
+    .master-item span:first-child{ font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+    .master-item strong{ font-size:14px; font-weight:900; letter-spacing:-.3px; }
+    .kat-card{ background:#fff; border:1px solid var(--border); border-radius:14px; padding:13px; box-shadow: var(--shadow-sm); transition:.15s; }
+    .kat-card:hover{ transform: translateY(-1px); box-shadow: var(--shadow); border-color:#dbeafe; }
+    .kat-card-head{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
+    .kat-card-title{ font-size:13px; font-weight:800; letter-spacing:-.2px; color:#0f172a; }
+    .kat-card-sub{ font-size:11px; color:var(--muted); font-weight:600; }
+    .kat-bar{ height:7px; background:#e2e8f0; border-radius:999px; overflow:hidden; display:flex; }
+    .kat-bar-sah{ background: linear-gradient(90deg,#059669,#10b981); }
+    .kat-bar-tidak{ background: linear-gradient(90deg,#dc2626,#ef4444); }
+    .kat-stats{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:10px; }
+    .kat-stat{ text-align:center; background:#f8fafc; border:1px solid #f1f5f9; border-radius:10px; padding:8px 4px; }
+    .kat-stat b{ display:block; font-size:13px; font-weight:900; letter-spacing:-.4px; }
+    .kat-stat span{ font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); }
+
+    /* card header actions */
+    .card > div:first-child{ margin-bottom:2px; }
+
+    /* ===== Tablet: kandidat tabel → card ===== */
+    @media (max-width: 768px) {
+      #kKandTableWrap{ display:none !important; }
+      #kKandCards{ display:grid !important; }
+    }
+    /* ===== Responsif Presisi - Semua Halaman ===== */
     @media (max-width: 900px) {
       .main { margin-left: 0; }
-      .sidebar { transform: translateX(-100%); width: min(280px, 84vw); }
+      .sidebar { transform: translateX(-100%); width: min(286px, 86vw); }
       body.side-open .sidebar { transform: none; }
       body.side-open .overlay { display: block; }
-      .topbar h1 { font-size: 14px; }
+      .topbar{ padding: 10px 12px; gap:10px; }
+      .topbar h1 { font-size: 14px; letter-spacing:-.2px; }
+      .topbar h1::before{ width:8px; height:8px; box-shadow: 0 0 0 4px rgba(212,5,17,.14); }
       .topbar p { display: none; }
       .top-user { display: none; }
-      .wrap { margin: 14px auto; padding: 0 10px; }
-      .card { padding: 16px; }
-      .audit-table th, .audit-table td { padding: 8px; font-size: 12px; }
+      .hamburger{ padding:8px 10px; font-size:16px; border-radius:9px; min-width:40px; min-height:40px; display:grid; place-items:center; }
+      .wrap { margin: 14px auto; padding: 0 12px; }
+      .card { padding: 16px 14px; border-radius:14px; }
+      .card h2{ font-size:13.5px; gap:8px; padding-bottom:10px; margin-bottom:12px; }
+      .card h2::before{ width:24px; height:24px; border-radius:8px; font-size:12px; }
+      .audit-table{ border-radius:10px; }
+      .audit-table th, .audit-table td { padding: 9px 8px; font-size: 12.5px; }
+      .audit-table th{ white-space: nowrap; }
+      div[style*="overflow-x: auto"]{ overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+      div[style*="overflow-x: auto"] .audit-table{ min-width:540px; }
+      .row2{ grid-template-columns: 1fr !important; gap:10px !important; }
+      .grid{ grid-template-columns:1fr !important; gap:12px !important; }
+      .metric-grid{ grid-template-columns: repeat(2, 1fr); gap:10px; }
+      .k-modal-card{ max-width:92vw; }
+      #tpsMap, #saksiMap{ height:280px; }
+      .map-tools{ gap:6px; }
+      .map-tools input{ min-width:120px; }
+      .statline{ padding:8px 10px; gap:8px 12px; font-size:11.5px; }
+      .btn{ padding:9px 13px; font-size:12.5px; }
+      .k-modal-head{ padding:12px 14px; }
+      .k-modal-body{ padding:12px; }
+    }
+    @media (max-width: 640px) {
+      .topbar{ padding:9px 10px; }
+      .topbar h1{ font-size:13px; gap:8px; }
+      .brand{ padding:16px 14px 14px; }
+      .brand b{ font-size:14px; }
+      .wrap{ padding:0 10px; margin:10px auto; }
+      .card{ padding:14px 12px; border-radius:13px; box-shadow: var(--shadow-sm); }
+      .card h2{ font-size:13px; flex-wrap:wrap; }
+      /* semua filter & form grid jadi 1 kolom presisi */
+      .row2[style*="1fr 1fr"], .row2[style*="1fr 1fr 1fr"]{ grid-template-columns:1fr !important; }
+      label{ margin:10px 0 5px; font-size:10px; }
+      input, select, textarea{ font-size:16px !important; padding:10px 11px; border-radius:10px; } /* 16px cegah zoom iOS */
+      input[type="file"]{ font-size:13px !important; padding:6px; }
+      .metric-grid{ grid-template-columns:1fr; gap:10px; }
+      .metric-card{ padding:14px 14px 12px; }
+      .metric-card .value{ font-size:24px; }
+      .metric-card .title{ font-size:10px; }
+      .kand-card{ padding:12px; gap:10px; border-radius:13px; }
+      .kand-card-foto{ width:60px; height:60px; border-radius:10px; }
+      .kand-card-name{ font-size:14px; }
+      .kand-card-actions .btn{ font-size:11.5px; padding:7px 8px; }
+      .k-detail-grid{ gap:12px; }
+      .k-detail-row{ font-size:12px; }
+      .k-detail-row b{ min-width:78px; font-size:10px; }
+      /* header card flex jadi kolom presisi */
+      .card > div[style*="display: flex"]{ flex-direction:column; align-items:stretch !important; gap:8px !important; }
+      .card > div[style*="display: flex"] h2{ margin:0; }
+      /* pagination presisi */
+      .card div[style*="justify-content: space-between"]{ gap:8px; flex-wrap:wrap; }
+      .card div[style*="justify-content: space-between"] .btn{ flex:1; min-width:110px; }
+      /* nav-tabs pill wrap presisi */
+      .nav-tabs{ gap:6px; }
+      .tab-btn{ padding:7px 11px; font-size:12px; }
+      #wLevelTabs .tab-btn{ padding:6px 10px; font-size:11.5px; }
+      /* map presisi mobile */
+      #tpsMap, #saksiMap{ height:260px; border-radius:10px; }
+      #tpsMapWrap, #saksiMapWrap{ padding:8px; border-radius:12px; }
+      .k-modal{ padding:10px; align-items:flex-end; }
+      .k-modal-card{ max-height:92vh; border-radius:16px 16px 12px 12px; width:100%; }
+      .k-modal-foto{ max-height:50vh; }
+      /* statline & badge wrap */
+      .badge{ padding:3px 8px; font-size:10.5px; }
+      /* login card presisi */
+      #wLoginCard, #kLoginCard, #dLoginCard, #tLoginCard, #sLoginCard, #aLoginCard{ max-width:100% !important; margin:0 auto 14px !important; padding:16px !important; }
+      /* TPS & Dapil filter stack */
+      #tFKab, #tFKec, #tFDesa, #wFProv, #wFKab, #wFKec, #sFKab, #sFKec, #sFDesa{ font-size:14px; }
+      /* kandidat foto preview */
+      #kFotoPrev{ max-width:100px; border-radius:10px; }
+      .k-foto-statline{ font-size:11px; }
+    }
+    @media (max-width: 380px) {
+      .metric-grid{ grid-template-columns:1fr; }
+      .kand-card{ flex-direction:column; }
+      .kand-card-foto{ width:100%; height:auto; aspect-ratio:1; max-height:180px; }
+      .topbar h1{ font-size:12.5px; }
     }
   </style>
 </head>
@@ -190,7 +425,8 @@
         <button class="tab-btn active" data-admin id="tabDashAdminBtn" onclick="switchTab('dashadmin')">📈 Dashboard Admin</button>
         <button class="tab-btn" data-admin id="tabAdminBtn" onclick="switchTab('admin')">🛠️ Kelola Wilayah</button>
         <button class="tab-btn" data-admin id="tabKandidatBtn" onclick="switchTab('kandidat')">🗳️ Kategori & Kandidat</button>
-        <button class="tab-btn" data-admin id="tabDapilBtn" onclick="switchTab('dapil')">🗺️ Dapil & TPS</button>
+        <button class="tab-btn" data-admin id="tabDapilBtn" onclick="switchTab('dapil')">🗺️ Dapil</button>
+        <button class="tab-btn" data-admin id="tabTpsBtn" onclick="switchTab('tps')">📍 Master TPS</button>
         <button class="tab-btn" data-admin id="tabSaksiBtn" onclick="switchTab('saksi')">👥 Registrasi Saksi</button>
       </div>
     </nav>
@@ -341,35 +577,40 @@
         <div style="margin-top: 10px;"><label>Nama *</label><input id="kKNama" placeholder="Nama kandidat / partai / caleg" /></div>
         <div class="row2" style="margin-top: 10px;">
           <div>
-            <label>Foto</label>
+            <label>Foto Kandidat</label>
             <input id="kKFoto" type="file" accept="image/*" onchange="kFotoChange()" />
-            <div class="statline"><span id="kFotoStat">Belum pilih foto (opsional)</span></div>
-            <img id="kFotoPrev" style="display: none; max-width: 120px; border-radius: 8px; margin-top: 8px; border: 1px solid var(--border);" alt="pratinjau foto" />
-            <div><button class="btn btn-ghost" type="button" style="margin-top: 6px;" onclick="kFotoClear()">✖ Hapus foto</button></div>
+            <div class="k-foto-statline"><span id="kFotoStat">Belum pilih foto (opsional)</span></div>
+            <img id="kFotoPrev" style="display: none; max-width: 120px; border-radius: 12px; margin-top: 8px; border: 1px solid var(--border); box-shadow: var(--shadow-sm);" alt="pratinjau foto" />
+            <div id="kFotoClearWrap" style="display:none;"><button class="btn btn-ghost" type="button" style="margin-top: 8px; font-size:12px;" onclick="kFotoClear()">✖ Hapus foto</button></div>
             <input type="hidden" id="kKFotoUrl" value="" />
           </div>
-          <div><label>Partai</label><input id="kKPartai" placeholder="Nama partai pengusung (opsional)" /></div>
+          <div>
+            <label>Partai</label><input id="kKPartai" placeholder="Nama partai pengusung (opsional)" />
+            <div style="margin-top:10px; background:var(--accent-soft); border:1px solid #dbeafe; border-radius:10px; padding:9px 10px; font-size:12px; color:#1e40af; line-height:1.4;">💡 Foto akan tampil di card mobile & modal popup. Klik thumbnail untuk perbesar. Isi <b>Keterangan</b> di bawah agar card tidak menampilkan <i>Belum ada keterangan</i>.</div>
+          </div>
         </div>
+        <div style="margin-top: 10px;"><label>Keterangan / Detail</label><textarea id="kKKet" rows="3" placeholder="Visi, misi, atau keterangan kandidat (opsional) — akan tampil di modal detail" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:11px;background:#f8fafc;font-size:14px;resize:vertical;min-height:78px;"></textarea></div>
         <input type="hidden" id="kKEditId" value="" />
         <div style="display: flex; gap: 10px; margin-top: 12px;">
           <button class="btn btn-ghost" onclick="kSaveKand()">💾 Simpan Kandidat</button>
           <button class="btn btn-ghost" onclick="kCancelKand()">Batal</button>
         </div>
-        <div style="overflow-x: auto;">
+        <div id="kKandTableWrap" style="overflow-x: auto;">
           <table class="audit-table">
             <thead><tr><th>ID</th><th>Foto</th><th>Nama</th><th>Partai</th><th>Kategori</th><th>Dapil</th><th>Tipe</th><th>No</th><th>Aksi</th></tr></thead>
             <tbody id="kKandBody"></tbody>
           </table>
         </div>
+        <div id="kKandCards" class="kand-cards" aria-live="polite"></div>
       </div>
       </div>
     </div>
 
-    <!-- TAB 6: DAPIL & TPS -->
+    <!-- TAB 6: DAPIL -->
     <div id="tabDapil" class="tab-content">
       <div class="card" id="dLoginCard" style="max-width: 420px; margin: 0 auto 20px;">
         <h2>🔐 Area Admin</h2>
-        <p style="font-size: 13px; color: var(--muted);">Silakan login dulu untuk mengelola dapil & TPS.</p>
+        <p style="font-size: 13px; color: var(--muted);">Silakan login dulu untuk mengelola dapil.</p>
         <button class="btn btn-primary" onclick="switchTab('admin')">Ke Halaman Login</button>
       </div>
 
@@ -421,7 +662,18 @@
           </table>
         </div>
       </div>
+      </div>
+    </div>
 
+    <!-- TAB 7: MASTER TPS -->
+    <div id="tabTps" class="tab-content">
+      <div class="card" id="tLoginCard" style="max-width: 420px; margin: 0 auto 20px;">
+        <h2>🔐 Area Admin</h2>
+        <p style="font-size: 13px; color: var(--muted);">Silakan login dulu untuk mengelola Master TPS.</p>
+        <button class="btn btn-primary" onclick="switchTab('admin')">Ke Halaman Login</button>
+      </div>
+
+      <div id="tBodyWrap" style="display: none;">
       <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
           <h2>Master TPS (maks 500 pemilih/TPS)</h2>
@@ -500,11 +752,49 @@
           <div><label>No. HP * (untuk WA)</label><input id="sFHp" placeholder="08xx..." /></div>
         </div>
         <div style="margin-top: 10px;"><label>Keterangan</label><input id="sFKet" placeholder="opsional" /></div>
+        <div class="row2" style="margin-top: 10px;">
+          <div>
+            <label>Foto KTP * <span style="font-weight:400; text-transform:none; color:var(--muted);">(auto compress)</span></label>
+            <input id="sFKtp" type="file" accept="image/*" onchange="sKtpChange()" />
+            <div class="k-foto-statline"><span id="sKtpStat">Belum pilih foto KTP</span></div>
+            <img id="sKtpPrev" style="display:none; max-width:140px; border-radius:12px; margin-top:8px; border:1px solid var(--border); box-shadow: var(--shadow-sm); cursor:pointer;" alt="pratinjau KTP" title="Klik untuk perbesar" onclick="if(this.src) sOpenKtp(this.src, $('sFNama').value||'Preview')" />
+            <div id="sKtpClearWrap" style="display:none; gap:6px; margin-top:8px; flex-wrap:wrap;"><button class="btn btn-ghost" type="button" style="font-size:12px;" onclick="if($('sKtpPrev').src) sOpenKtp($('sKtpPrev').src, $('sFNama').value||'KTP')">🔍 Lihat</button><button class="btn btn-ghost" type="button" style="font-size:12px;" onclick="sKtpClear()">✖ Hapus</button></div>
+            <input type="hidden" id="sKtpUrl" value="" />
+          </div>
+          <div>
+            <label>Bank / E-Wallet *</label>
+            <select id="sFBank"><option value="">— Pilih Bank —</option>
+              <option>BCA</option><option>BRI</option><option>BNI</option><option>MANDIRI</option><option>BSI</option><option>CIMB NIAGA</option><option>DANAMON</option><option>PERMATA</option><option>BTN</option><option>BTPN</option><option>JENIUS</option><option>SEABANK</option><option>BANK JAGO</option><option>DANA</option><option>OVO</option><option>GOPAY</option><option>SHOPEEPAY</option><option>LINKAJA</option><option>LAINNYA</option>
+            </select>
+            <label style="margin-top:10px;">No. Rekening / No. E-Wallet *</label>
+            <input id="sFRek" placeholder="8-20 digit angka" inputmode="numeric" maxlength="20" />
+            <p style="font-size:11px; color:var(--muted); margin-top:4px;">Untuk e-wallet (Dana/Ovo/Gopay) isi no HP terdaftar. SeaBank: no rekening 10-16 digit.</p>
+          </div>
+        </div>
         <div class="row2" style="grid-template-columns: 1fr 1fr 1fr 1fr; margin-top: 10px;">
           <div><label>Kab/Kota *</label><select id="sFKab" onchange="sKabChange()"><option value="">— Pilih —</option></select></div>
           <div><label>Kecamatan *</label><select id="sFKec" onchange="sKecChange()"><option value="">— Pilih —</option></select></div>
           <div><label>Desa *</label><select id="sFDesa" onchange="sDesaChange()"><option value="">— Pilih —</option></select></div>
-          <div><label>TPS *</label><select id="sFTps"><option value="">— Pilih desa dulu —</option></select></div>
+          <div><label>TPS *</label><select id="sFTps" onchange="sTpsChange()"><option value="">— Pilih desa dulu —</option></select></div>
+        </div>
+        <div class="row2" style="margin-top: 10px;">
+          <div><label>Latitude GPS (TPS)</label><input id="sFLat" type="number" step="any" min="-90" max="90" placeholder="mis. -5.3971" onchange="sMapSync()" /></div>
+          <div><label>Longitude GPS (TPS)</label><input id="sFLng" type="number" step="any" min="-180" max="180" placeholder="mis. 105.2668" onchange="sMapSync()" /></div>
+        </div>
+        <div style="margin-top: 10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button class="btn btn-ghost" type="button" onclick="sMapToggle()">🗺️ Pilih di Peta</button>
+          <button class="btn btn-ghost" type="button" id="sBtnSaveGps" onclick="sSaveTpsLocation()" style="display:none;">💾 Simpan GPS TPS</button>
+          <span id="sMapInfo" style="font-size:12px; color: var(--muted);"></span>
+        </div>
+        <div id="saksiMapWrap" style="display: none;">
+          <div id="saksiMap"></div>
+          <div class="map-tools">
+            <input id="sMapSearch" placeholder="Cari desa/kecamatan... (Enter)" onkeydown="if(event.key==='Enter')sMapSearch()" />
+            <button class="btn btn-ghost" type="button" onclick="sMapSearch()">🔍</button>
+            <button class="btn btn-ghost" type="button" onclick="sMapCenterTPS()">📍 Fokus TPS</button>
+            <button class="btn btn-ghost" type="button" onclick="sMapGPS()">📍 Lokasi Saya</button>
+          </div>
+          <p style="font-size: 11.5px; color: var(--muted); margin-top: 6px;">Klik peta / geser pin untuk mengisi lat-long. Kanan atas: Peta Jalan 🗺️ / Satelit 🛰️ + overlay 🏘️ Batas Desa resmi BIG 1:10.000.</p>
         </div>
         <div style="margin-top: 10px;"><label>Ditugaskan untuk Kandidat</label><select id="sFKandidat"><option value="">— Tanpa penugasan khusus —</option></select></div>
         <input type="hidden" id="sFEditId" value="" />
@@ -537,7 +827,7 @@
         </div>
         <div style="overflow-x: auto;">
           <table class="audit-table">
-            <thead><tr><th>ID</th><th>Nama</th><th>NIK</th><th>Username</th><th>No. HP</th><th>TPS</th><th>Desa/Kec</th><th>Kandidat</th><th>Aksi</th></tr></thead>
+            <thead><tr><th>ID</th><th>Nama</th><th>NIK</th><th>KTP</th><th>Username</th><th>No. HP</th><th>TPS</th><th>Desa/Kec</th><th>Kandidat</th><th>Rekening</th><th>Aksi</th></tr></thead>
             <tbody id="sSaksiBody"></tbody>
           </table>
         </div>
@@ -559,37 +849,68 @@
       </div>
 
       <div id="aBody" style="display: none;">
-        <div class="metric-grid">
-          <div class="metric-card"><div class="title">TPS Masuk</div><div class="value" id="aTPS">0</div><div class="desc">Distinct TPS</div></div>
-          <div class="metric-card"><div class="title">Transaksi C1</div><div class="value" id="aTx">0</div><div class="desc">Baris transaksi_c1</div></div>
-          <div class="metric-card"><div class="title">Suara Sah</div><div class="value" id="aSah">0</div><div class="desc">Total terhitung</div></div>
-          <div class="metric-card"><div class="title">Tidak Sah</div><div class="value" id="aTidak">0</div><div class="desc">Total rusak/batal</div></div>
-          <div class="metric-card"><div class="title">Backlog Antrean</div><div class="value" id="aBacklog">0</div><div class="desc">Waiting + Active</div></div>
-          <div class="metric-card"><div class="title">Job Gagal</div><div class="value" id="aFail">0</div><div class="desc">BullMQ failed</div></div>
-        </div>
-
-        <div class="card" style="margin-bottom: 20px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <h2>Status Pipeline & Master Data</h2>
-            <button class="btn btn-ghost" onclick="aLoad()">🔄 Refresh</button>
+        <!-- header presisi -->
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:200px;">
+            <h2 style="font-size:18px; font-weight:900; letter-spacing:-.5px; display:flex; align-items:center; gap:8px; margin:0; border:none; padding:0;">📊 Ringkasan Operasional</h2>
+            <p style="font-size:12.5px; color:var(--muted); margin-top:4px; font-weight:600;">Realtime • auto-refresh 4s • <span id="aUpdated" class="badge" style="background:#fff; border-color:var(--border);">—</span> <span id="aLiveDot" style="display:inline-flex; align-items:center; gap:5px; margin-left:6px; font-size:11px; color:var(--ok); font-weight:800;"><span style="width:7px; height:7px; border-radius:999px; background:var(--ok); box-shadow:0 0 0 5px rgba(16,185,129,.18); display:inline-block;"></span>LIVE</span></p>
           </div>
-          <div class="statline" id="aQueue" style="margin-top: 10px;"></div>
-          <div class="statline" id="aMaster" style="margin-top: 6px;"></div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-ghost" onclick="aLoad()" style="padding:9px 14px;">🔄 Refresh</button>
+            <span class="badge" id="aHealth" style="background:var(--ok-soft); color:var(--ok); border-color:#a7f3d0; align-self:center;">● Sehat</span>
+          </div>
         </div>
 
-        <div class="card" style="margin-bottom: 20px;">
-          <h2>Per Kategori Pemilihan</h2>
-          <div style="overflow-x: auto;">
-            <table class="audit-table">
-              <thead><tr><th>Kategori</th><th>TPS</th><th>Transaksi</th><th>Suara Sah</th><th>Tidak Sah</th></tr></thead>
+        <div class="metric-grid" style="gap:12px;">
+          <div class="metric-card"><div class="title">🗳️ TPS Masuk</div><div class="value" id="aTPS">0</div><div class="desc"><span id="aTpsPct" class="badge">0%</span> dari master</div></div>
+          <div class="metric-card"><div class="title">📄 Transaksi C1</div><div class="value" id="aTx">0</div><div class="desc">Baris transaksi_c1</div></div>
+          <div class="metric-card"><div class="title">✅ Suara Sah</div><div class="value" id="aSah">0</div><div class="desc" id="aSahPct">—</div></div>
+          <div class="metric-card"><div class="title">❌ Tidak Sah</div><div class="value" id="aTidak">0</div><div class="desc" id="aTidakPct">—</div></div>
+          <div class="metric-card"><div class="title">⏳ Backlog Antrean</div><div class="value" id="aBacklog">0</div><div class="desc">Waiting + Active</div></div>
+          <div class="metric-card"><div class="title">⚠️ Job Gagal</div><div class="value" id="aFail">0</div><div class="desc">BullMQ failed</div></div>
+        </div>
+
+        <div class="grid" style="grid-template-columns:1.1fr 0.9fr; gap:14px; margin-bottom:16px;">
+          <div class="card" style="margin-bottom:0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+              <h2 style="margin:0; border:none; padding:0;">⚙️ Pipeline Antrean</h2>
+              <span class="badge" id="aBacklogBadge" style="background:#fef3c7; color:#92400e; border-color:#fde68a;">backlog 0</span>
+            </div>
+            <div id="aQueuePills" style="display:flex; flex-wrap:wrap; gap:7px; margin-top:12px;"></div>
+            <div style="margin-top:12px; background:#f8fafc; border:1px solid #f1f5f9; border-radius:11px; padding:10px 12px;">
+              <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;"><span>Progres antrean</span><span id="aQueuePct">0%</span></div>
+              <div style="background:#e2e8f0; height:10px; border-radius:999px; overflow:hidden;"><div id="aQueueBar" style="height:100%; width:0%; background:linear-gradient(90deg,#2563eb,#06b6d4); border-radius:999px; transition:width .5s;"></div></div>
+              <div id="aQueue" style="display:none;"></div>
+            </div>
+            <div id="aQueueErr" style="margin-top:8px; display:none; font-size:12px; color:var(--err); background:var(--err-soft); border:1px solid #fecaca; border-radius:9px; padding:8px 10px;"></div>
+          </div>
+          <div class="card" style="margin-bottom:0;">
+            <h2 style="margin:0; border:none; padding:0;">🗂️ Master Data</h2>
+            <div id="aMasterGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;"></div>
+            <div id="aMaster" style="display:none;"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <h2 style="margin:0; border:none; padding:0;">🏷️ Per Kategori Pemilihan</h2>
+            <span class="badge" id="aKatCount">0 kategori</span>
+          </div>
+          <div id="aKatCards" class="kand-cards" style="margin-top:12px; display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap:10px;"></div>
+          <div style="overflow-x: auto; margin-top:12px;">
+            <table class="audit-table" id="aKatTable">
+              <thead><tr><th>Kategori</th><th>TPS</th><th>Transaksi</th><th>Suara Sah</th><th>Tidak Sah</th><th style="min-width:140px;">Distribusi</th></tr></thead>
               <tbody id="aKatBody"></tbody>
             </table>
           </div>
         </div>
 
       <div class="card">
-          <h2>Monitoring Transaksi Masuk</h2>
-          <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <h2 style="margin:0; border:none; padding:0;">📡 Monitoring Transaksi Masuk</h2>
+            <span class="badge" id="aTrxBadge">live</span>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;">
             <select id="aFKat" onchange="aTrx(0)" style="flex: 1; min-width: 160px;"><option value="">— Semua kategori —</option></select>
             <input id="aFTps" placeholder="Cari TPS ID..." style="flex: 1; min-width: 160px;" oninput="aTrx(0)" />
           </div>
@@ -599,7 +920,7 @@
               <tbody id="aTrxBody"></tbody>
             </table>
           </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap:8px; flex-wrap:wrap;">
             <button class="btn btn-ghost" onclick="aPage(-1)">← Sebelumnya</button>
             <span id="aPageInfo" class="badge">0 data</span>
             <button class="btn btn-ghost" onclick="aPage(1)">Berikutnya →</button>
@@ -633,8 +954,8 @@
     }
 
     function switchTab(tab) {
-      const tabs = ['admin', 'dashadmin', 'kandidat', 'dapil', 'saksi'];
-      const titles = { admin: 'Admin', dashadmin: 'DashAdmin', kandidat: 'Kandidat', dapil: 'Dapil', saksi: 'Saksi' };
+      const tabs = ['admin', 'dashadmin', 'kandidat', 'dapil', 'tps', 'saksi'];
+      const titles = { admin: 'Admin', dashadmin: 'DashAdmin', kandidat: 'Kandidat', dapil: 'Dapil', tps: 'Tps', saksi: 'Saksi' };
       tabs.forEach((t) => {
         const name = titles[t];
         $('tab' + name).classList.toggle('active', t === tab);
@@ -645,6 +966,7 @@
       if (tab === 'dashadmin') aInit();
       if (tab === 'kandidat') kInit();
       if (tab === 'dapil') dInit();
+      if (tab === 'tps') tInit();
       if (tab === 'saksi') sInit();
     }
 
@@ -686,6 +1008,8 @@
       $('kBody').style.display = 'none';
       $('dLoginCard').style.display = '';
       $('dBody').style.display = 'none';
+      $('tLoginCard').style.display = '';
+      $('tBodyWrap').style.display = 'none';
       $('sLoginCard').style.display = '';
       $('sBody').style.display = 'none';
       if (msg) {
@@ -1076,26 +1400,58 @@
         $('kKandBody').innerHTML = data.data.map((r) => `
           <tr>
             <td><strong>${wEsc(r.id)}</strong></td>
-            <td>${r.foto ? `<a href="${wEsc(r.foto)}" target="_blank"><img src="${wEsc(r.foto)}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" alt="" /></a>` : '<span style="color:var(--muted);">-</span>'}</td>
-            <td>${wEsc(r.nama)}</td>
+            <td>${r.foto ? `<img src="${wEsc(r.foto)}" class="k-foto-thumb" alt="" title="Klik untuk perbesar" onclick="kOpenFoto('${wEsc(r.foto)}','${wEsc(r.nama).replace(/'/g, "\\'")}')" />` : '<span style="color:var(--muted);">-</span>'}</td>
+            <td><div style="font-weight:700;">${wEsc(r.nama)}</div>${r.keterangan ? `<div style="font-size:11.5px;color:var(--muted);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${wEsc(r.keterangan)}</div>` : ''}</td>
             <td>${wEsc(r.partai || '-')}</td>
             <td><span class="badge">${wEsc(r.kategori_pemilihan_id)}</span></td>
             <td>${r.dapil_kode ? `<span class="badge" style="background:#e0f2fe;color:#0369a1;">${wEsc(r.dapil_kode)}</span>` : '<span style="color:var(--muted);">-</span>'}</td>
             <td>${wEsc(r.tipe_kandidat)}</td>
             <td>${r.no_urut}</td>
-            <td style="white-space: nowrap;">
-              <button class="btn btn-ghost" onclick="kEditKand('${wEsc(r.id)}')">✏️</button>
-              <button class="btn btn-ghost" onclick="kDelKand('${wEsc(r.id)}')">🗑️</button>
+            <td style="white-space: nowrap; display:flex; gap:6px;">
+              <button class="btn btn-ghost k-detail-btn" onclick="kDetail('${wEsc(r.id)}')" title="Lihat detail & keterangan">👁️ Detail</button>
+              <button class="btn btn-ghost k-detail-btn" onclick="kEditKand('${wEsc(r.id)}')" title="Edit">✏️</button>
+              <button class="btn btn-ghost k-detail-btn" onclick="kDelKand('${wEsc(r.id)}')" title="Hapus">🗑️</button>
             </td>
           </tr>`).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--muted);">Tidak ada data</td></tr>';
+        // Mobile cards - presisi
+        const kCards = $('kKandCards');
+        if (kCards) {
+          kCards.innerHTML = data.data.map((r) => `
+            <div class="kand-card">
+              ${r.foto ? `<img src="${wEsc(r.foto)}" class="kand-card-foto" alt="${wEsc(r.nama)}" onclick="kOpenFoto('${wEsc(r.foto)}','${wEsc(r.nama).replace(/'/g, "\\'")}')" />` : `<div class="kand-card-foto no-foto">👤</div>`}
+              <div class="kand-card-main">
+                <div class="kand-card-head">
+                  <span class="badge" style="background:#0f172a;color:#fff;border-color:#0f172a;">${wEsc(r.id)}</span>
+                  <span class="badge">${wEsc(r.tipe_kandidat)}</span>
+                  <span class="badge" style="background:#fef2f2;color:#991b1b;border-color:#fecaca;">No ${r.no_urut}</span>
+                </div>
+                <div class="kand-card-name" title="${wEsc(r.nama)}">${wEsc(r.nama)}</div>
+                <div class="kand-card-partai">${wEsc(r.partai ? 'Partai: ' + r.partai : '— Tanpa partai —')}</div>
+                <div class="kand-card-meta">
+                  <span class="meta-chip"><b>Kategori</b> ${wEsc(r.kategori_pemilihan_id)}</span>
+                  ${r.dapil_kode ? `<span class="meta-chip" style="background:#e0f2fe;border-color:#bae6fd;color:#0c4a6e;"><b>Dapil</b> ${wEsc(r.dapil_kode)}</span>` : `<span class="meta-chip" style="color:var(--muted);"><b>Dapil</b> —</span>`}
+                </div>
+                ${r.keterangan ? `<div class="kand-card-ket">${wEsc(r.keterangan)}</div>` : `<div class="kand-card-ket empty">Belum ada keterangan</div>`}
+                <div class="kand-card-actions">
+                  <button class="btn btn-ghost" onclick="kDetail('${wEsc(r.id)}')">👁️ Detail</button>
+                  <button class="btn btn-ghost" onclick="kEditKand('${wEsc(r.id)}')">✏️ Edit</button>
+                  <button class="btn btn-ghost" onclick="kDelKand('${wEsc(r.id)}')">🗑️ Hapus</button>
+                </div>
+              </div>
+            </div>`).join('') || '<div style="text-align:center; color:var(--muted); padding:20px; background:#fff; border:1px dashed var(--border); border-radius:14px;">Tidak ada data kandidat</div>';
+        }
       } catch (err) {
         $('kKandBody').innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--err);">${wEsc(err.message)}</td></tr>`;
+        const kCardsErr = $('kKandCards');
+        if (kCardsErr) kCardsErr.innerHTML = `<div style="text-align:center; color:var(--err); padding:16px; background:#fff; border:1px solid #fecaca; border-radius:14px;">${wEsc(err.message)}</div>`;
       }
     }
 
     function kFotoChange() {
       const f = $('kKFoto').files[0];
       $('kFotoStat').textContent = f ? `${f.name} (${(f.size / 1024).toFixed(1)} KB) — akan diunggah saat Simpan` : 'Belum pilih foto (opsional)';
+      const hasFile = !!f || !!$('kKFotoUrl').value;
+      $('kFotoClearWrap').style.display = hasFile ? '' : 'none';
       if (f) {
         $('kFotoPrev').src = URL.createObjectURL(f);
         $('kFotoPrev').style.display = '';
@@ -1108,7 +1464,8 @@
       $('kKFoto').value = '';
       $('kKFotoUrl').value = '';
       $('kFotoPrev').style.display = 'none';
-      $('kFotoStat').textContent = 'Foto dihapus (tersimpan saat Simpan)';
+      $('kFotoStat').textContent = 'Belum pilih foto (opsional)';
+      $('kFotoClearWrap').style.display = 'none';
     }
 
     async function kCompressImage(file, maxDim = 1280, quality = 0.82) {
@@ -1155,9 +1512,22 @@
 
     async function kEditKand(id) {
       try {
+        // pastikan dropdown kategori & dapil sudah terload sebelum set value (mencegah nilai kosong saat edit)
+        const needKat = !$('kKKat').options.length || ![...$('kKKat').options].some(o=>o.value===id) ;
+        // preload ringan: jika kKKat belum punya opsi yang dibutuhkan, reload
+        if ($('kKKat').options.length <= 1) {
+          try { await kLoadKat(); await kLoadDapil(); } catch(e){}
+        }
         const data = await wFetchJSON(`${KAPI}/list?search=${encodeURIComponent(id)}`);
         const r = data.data.find((x) => x.id === id) || data.data[0];
         if (!r) { alert('Data tidak ditemukan'); return; }
+        // jika kategori/dapil belum ada di option (race), reload dan coba lagi
+        if (r.kategori_pemilihan_id && ![...$('kKKat').options].some(o=>o.value===r.kategori_pemilihan_id)) {
+          await kLoadKat();
+        }
+        if (r.dapil_id && ![...$('kKDapil').options].some(o=>o.value===r.dapil_id)) {
+          await kLoadDapil();
+        }
         $('kKEditId').value = r.id;
         $('kKId').value = r.id;
         $('kKId').disabled = true;
@@ -1167,16 +1537,21 @@
         $('kKNama').value = r.nama;
         $('kKDapil').value = r.dapil_id || '';
         $('kKPartai').value = r.partai || '';
+        $('kKKet').value = r.keterangan || '';
         $('kKFotoUrl').value = r.foto || '';
         $('kKFoto').value = '';
         if (r.foto) {
           $('kFotoPrev').src = r.foto;
           $('kFotoPrev').style.display = '';
           $('kFotoStat').textContent = 'Foto tersimpan (pilih file baru untuk mengganti)';
+          $('kFotoClearWrap').style.display = '';
         } else {
           $('kFotoPrev').style.display = 'none';
           $('kFotoStat').textContent = 'Belum pilih foto (opsional)';
+          $('kFotoClearWrap').style.display = 'none';
         }
+        // scroll ke form agar presisi di mobile
+        $('kKId').closest('.card').scrollIntoView({behavior:'smooth', block:'start'});
       } catch (err) {
         alert('Gagal memuat: ' + err.message);
       }
@@ -1190,31 +1565,46 @@
       $('kKNo').value = 1;
       $('kKDapil').value = '';
       $('kKPartai').value = '';
+      $('kKKet').value = '';
       $('kKFoto').value = '';
       $('kKFotoUrl').value = '';
       $('kFotoPrev').style.display = 'none';
       $('kFotoStat').textContent = 'Belum pilih foto (opsional)';
+      $('kFotoClearWrap').style.display = 'none';
     }
 
     async function kSaveKand() {
       const editId = $('kKEditId').value;
+      const katVal = $('kKKat').value;
+      const dapilVal = $('kKDapil').value || null;
       const body = {
         nama: $('kKNama').value.trim(),
         tipe_kandidat: $('kKTipe').value,
         no_urut: parseInt($('kKNo').value, 10) || 0,
-        kategori_pemilihan_id: $('kKKat').value,
-        dapil_id: $('kKDapil').value || null
+        dapil_id: dapilVal
       };
+      // kategori: wajib saat tambah, opsional saat edit (jika kosong karena race, jangan kirim agar tidak error validasi)
+      if (katVal) body.kategori_pemilihan_id = katVal;
       if (!editId) {
         body.id = $('kKId').value.trim().toUpperCase();
         if (!body.id) { alert('ID kandidat wajib diisi'); return; }
-        if (!body.kategori_pemilihan_id) { alert('Kategori wajib dipilih'); return; }
+        if (!katVal) { alert('Kategori wajib dipilih'); return; }
+      } else {
+        // untuk edit, jika kategori tidak terpilih karena belum load, beri peringatan presisi alih-alih kirim kosong
+        if (!katVal) {
+          // coba reload dulu, jika masih kosong jangan kirim kategori (server akan keep existing)
+          try { await kLoadKat(); } catch(e){}
+          if ($('kKKat').value) body.kategori_pemilihan_id = $('kKKat').value;
+          else delete body.kategori_pemilihan_id;
+        }
       }
       if (!body.nama) { alert('Nama wajib diisi'); return; }
       try {
         body.foto = await kUploadFoto();
         const partai = $('kKPartai').value.trim();
         if (partai) body.partai = partai;
+        const ket = $('kKKet').value.trim();
+        body.keterangan = ket || null;
         await wFetchJSON(editId ? `${KAPI}/list/${encodeURIComponent(editId)}` : `${KAPI}/list`, {
           method: editId ? 'PUT' : 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1236,6 +1626,62 @@
         alert('Gagal menghapus: ' + err.message);
       }
     }
+
+    // ---------- Modal Foto & Detail Kandidat ----------
+    function kOpenFoto(url, nama, title) {
+      $('kFotoModalImg').src = url;
+      $('kFotoModalCap').textContent = nama || '';
+      if(title) { const t=$('kFotoModalTitle'); if(t) t.textContent = title; }
+      else { const t=$('kFotoModalTitle'); if(t) t.textContent = '🖼️ Foto Kandidat'; }
+      const down=$('kFotoModalDown'); if(down) down.href = url;
+      $('kFotoModal').classList.add('open');
+      $('kFotoModal').style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+    function kFotoModalClose() {
+      $('kFotoModal').classList.remove('open');
+      $('kFotoModal').style.display = 'none';
+      $('kFotoModalImg').src = '';
+      document.body.style.overflow = '';
+    }
+    async function kDetail(id) {
+      try {
+        const data = await wFetchJSON(`${KAPI}/list?search=${encodeURIComponent(id)}`);
+        const r = data.data.find(x => x.id === id) || data.data[0];
+        if (!r) { alert('Data tidak ditemukan'); return; }
+        const fotoEl = $('kDetailFoto');
+        if (r.foto) { fotoEl.src = r.foto; fotoEl.style.display = ''; } else { fotoEl.style.display = 'none'; fotoEl.src=''; }
+        $('kDetailId').textContent = r.id;
+        $('kDetailNama').textContent = r.nama;
+        $('kDetailPartai').textContent = r.partai || '-';
+        $('kDetailKategori').textContent = r.kategori_pemilihan_id + (r.nama_pemilihan ? ' — ' + r.nama_pemilihan : '');
+        $('kDetailDapil').textContent = r.dapil_kode ? `${r.dapil_kode} — ${r.dapil_nama || ''}` : '-';
+        $('kDetailTipe').textContent = r.tipe_kandidat;
+        $('kDetailNo').textContent = r.no_urut;
+        const ketEl = $('kDetailKet');
+        if (r.keterangan && String(r.keterangan).trim()) {
+          ketEl.textContent = r.keterangan;
+          ketEl.classList.remove('empty');
+        } else {
+          ketEl.textContent = 'Belum ada keterangan detail untuk kandidat ini.';
+          ketEl.classList.add('empty');
+        }
+        $('kDetailFotoBtn').onclick = () => { if (r.foto) { kDetailClose(); setTimeout(()=>kOpenFoto(r.foto, r.nama), 120); } };
+        $('kDetailFotoBtn').style.display = r.foto ? '' : 'none';
+        $('kDetailModal').classList.add('open');
+        $('kDetailModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      } catch (err) { alert('Gagal memuat detail: ' + err.message); }
+    }
+    function kDetailClose() {
+      $('kDetailModal').classList.remove('open');
+      $('kDetailModal').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+    // tutup modal dengan ESC / klik overlay
+    document.addEventListener('keydown', (e)=>{
+      if(e.key==='Escape'){ if($('kFotoModal')?.classList.contains('open')) kFotoModalClose(); if($('kDetailModal')?.classList.contains('open')) kDetailClose(); }
+    });
 
     // ================= ADMIN DAPIL & TPS =================
     const DAPI = location.origin + '/api/dapil';
@@ -1259,17 +1705,36 @@
         $('dFKab').innerHTML = '<option value="">— Pilih —</option>' + kb.data.map((r) =>
           `<option value="${r.id}">${wEsc(r.nama)}</option>`).join('');
         if ([...$('dFKab').options].some((o) => o.value === cur)) $('dFKab').value = cur;
+        dLoad();
+      } catch (err) {
+        localStorage.removeItem('c1_admin_token');
+        $('dLoginCard').style.display = '';
+        $('dBody').style.display = 'none';
+      }
+    }
+
+    async function tInit() {
+      if (!wToken()) {
+        $('tLoginCard').style.display = '';
+        $('tBodyWrap').style.display = 'none';
+        return;
+      }
+      try {
+        await wFetchJSON(`${location.origin}/api/auth/me`);
+        $('tLoginCard').style.display = 'none';
+        $('tBodyWrap').style.display = '';
         const tk = await wFetchJSON(`${WAPI}/kabupaten?provinsi_id=18`);
         const tcur = $('tFKab').value;
         $('tFKab').innerHTML = '<option value="">— Semua —</option>' + tk.data.map((r) =>
           `<option value="${r.id}">${wEsc(r.nama)}</option>`).join('');
         if ([...$('tFKab').options].some((o) => o.value === tcur)) $('tFKab').value = tcur;
-        dLoad();
         tLoad(0);
+        // refresh map size jika sebelumnya pernah dibuka
+        if (tMap) setTimeout(() => tMap.invalidateSize(), 200);
       } catch (err) {
         localStorage.removeItem('c1_admin_token');
-        $('dLoginCard').style.display = '';
-        $('dBody').style.display = 'none';
+        $('tLoginCard').style.display = '';
+        $('tBodyWrap').style.display = 'none';
       }
     }
 
@@ -1588,6 +2053,202 @@
       );
     }
 
+    // ---------- Peta Saksi (mirror Master TPS — pin editable, simpan ke master_tps) ----------
+    let sMap = null, sMarker = null;
+    let sTpsLat = null, sTpsLng = null;
+    let sTpsLabel = '';
+    let sTpsOrigLat = null, sTpsOrigLng = null;
+
+    function sMapToggle() {
+      const w = $('saksiMapWrap');
+      const show = w.style.display === 'none';
+      w.style.display = show ? '' : 'none';
+      if (show) {
+        if (typeof L === 'undefined') {
+          w.innerHTML = '<p style="color:var(--err);font-size:13px;">Peta butuh internet (CDN Leaflet) — lihat koordinat di Master TPS.</p>';
+          return;
+        }
+        if (!sMap) sMapBuild();
+        else setTimeout(() => sMap.invalidateSize(), 100);
+        sMapSyncView();
+      }
+    }
+
+    function sMapBuild() {
+      sMap = L.map('saksiMap').setView(LAMPUNG, 8);
+      const jalan = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, attribution: '&copy; OpenStreetMap'
+      });
+      const satelit = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19, attribution: '&copy; Esri World Imagery'
+      });
+      const labelSatelit = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+      const satelitPlusLabel = L.layerGroup([satelit, labelSatelit]);
+      jalan.addTo(sMap);
+      const baseMaps = { '🗺️ Peta Jalan': jalan, '🛰️ Satelit': satelitPlusLabel };
+      const overlayMaps = {};
+      try {
+        if (typeof L.esri !== 'undefined') {
+          overlayMaps['🏘️ Batas Desa (BIG)'] = L.esri.dynamicMapLayer({
+            url: 'https://geoservices.big.go.id/rbi/rest/services/BATASWILAYAH/Administrasi_AR_KelDesa_10K/MapServer',
+            layers: [0], layerDefs: { 0: "WADMPR='Lampung'" }, opacity: 0.65
+          }).addTo(sMap);
+        }
+      } catch (e) { console.warn('layer BIG sMap gagal:', e.message); }
+      L.control.layers(baseMaps, overlayMaps).addTo(sMap);
+      sMarker = L.marker(LAMPUNG, { draggable: true }).addTo(sMap);
+      sMarker.on('dragend', () => sMapSet(sMarker.getLatLng().lat, sMarker.getLatLng().lng));
+      sMap.on('click', (e) => sMapSet(e.latlng.lat, e.latlng.lng));
+      if (sTpsLat !== null && sTpsLng !== null) {
+        sMarker.setLatLng([sTpsLat, sTpsLng]);
+        sMap.setView([sTpsLat, sTpsLng], 15);
+      }
+    }
+
+    function sMapSet(lat, lng) {
+      sTpsLat = Number(lat);
+      sTpsLng = Number(lng);
+      $('sFLat').value = Number(lat).toFixed(7);
+      $('sFLng').value = Number(lng).toFixed(7);
+      if (sMarker) sMarker.setLatLng([lat, lng]);
+      sMarker.bindPopup(wEsc(sTpsLabel || $('sFTps').value || 'TPS')).openPopup();
+      sUpdateGpsDirty();
+    }
+
+    function sMapSync() {
+      if (!sMap || !sMarker) return;
+      const lat = parseFloat($('sFLat').value), lng = parseFloat($('sFLng').value);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        sTpsLat = lat; sTpsLng = lng;
+        sMarker.setLatLng([lat, lng]);
+        sMap.setView([lat, lng], Math.max(sMap.getZoom(), 15));
+        if (sTpsLabel) sMarker.bindPopup(wEsc(sTpsLabel)).openPopup();
+      }
+      sUpdateGpsDirty();
+    }
+
+    function sUpdateGpsDirty() {
+      const lat = $('sFLat').value.trim() === '' ? null : Number($('sFLat').value);
+      const lng = $('sFLng').value.trim() === '' ? null : Number($('sFLng').value);
+      const dirty = $('sFTps').value && lat !== null && lng !== null && (lat !== sTpsOrigLat || lng !== sTpsOrigLng);
+      $('sBtnSaveGps').style.display = dirty ? '' : 'none';
+      if (dirty) {
+        $('sMapInfo').textContent = `📍 ${sTpsLabel || $('sFTps').value} — ${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)} ✏️ belum disimpan`;
+      } else if (sTpsLat !== null) {
+        $('sMapInfo').textContent = `📍 ${sTpsLabel} — ${Number(sTpsLat).toFixed(5)}, ${Number(sTpsLng).toFixed(5)}`;
+      }
+    }
+
+    function sMapSyncView() {
+      if (!sMap || !sMarker) return;
+      if (sTpsLat !== null && sTpsLng !== null) {
+        sMarker.setLatLng([sTpsLat, sTpsLng]);
+        if (sTpsLabel) sMarker.bindPopup(wEsc(sTpsLabel)).openPopup();
+        sMap.setView([sTpsLat, sTpsLng], Math.max(sMap.getZoom(), 15));
+        $('sMapInfo').textContent = `📍 ${sTpsLabel} — ${Number(sTpsLat).toFixed(5)}, ${Number(sTpsLng).toFixed(5)}`;
+        $('sFLat').value = Number(sTpsLat).toFixed(7);
+        $('sFLng').value = Number(sTpsLng).toFixed(7);
+      } else {
+        const hasTps = !!$('sFTps').value;
+        $('sMapInfo').textContent = hasTps ? '⚠️ TPS ini belum punya koordinat GPS — klik peta / geser pin untuk isi' : 'Pilih TPS untuk melihat lokasi di peta';
+        const curLat = parseFloat($('sFLat').value), curLng = parseFloat($('sFLng').value);
+        if (Number.isFinite(curLat) && Number.isFinite(curLng)) {
+          sMarker.setLatLng([curLat, curLng]);
+        } else {
+          sMarker.setLatLng(LAMPUNG);
+          sMap.setView(LAMPUNG, 8);
+        }
+      }
+      $('sFLat').value = sTpsLat !== null ? Number(sTpsLat).toFixed(7) : $('sFLat').value;
+      $('sFLng').value = sTpsLng !== null ? Number(sTpsLng).toFixed(7) : $('sFLng').value;
+      sUpdateGpsDirty();
+      setTimeout(() => sMap.invalidateSize(), 150);
+    }
+
+    async function sTpsChange() {
+      const tpsId = $('sFTps').value;
+      if (!tpsId) {
+        sTpsLat = null; sTpsLng = null; sTpsLabel = '';
+        sTpsOrigLat = null; sTpsOrigLng = null;
+        $('sFLat').value = ''; $('sFLng').value = '';
+        $('sMapInfo').textContent = '';
+        $('sBtnSaveGps').style.display = 'none';
+        if (sMap) sMapSyncView();
+        return;
+      }
+      try {
+        const d = await wFetchJSON(`${TAPI}/${encodeURIComponent(tpsId)}`);
+        const r = d.data;
+        sTpsLabel = `TPS ${r.no_tps} — ${r.id}${r.kelurahan ? ' · ' + r.kelurahan : ''}`;
+        if (r.lat !== null && r.lat !== '' && r.lng !== null && r.lng !== '') {
+          sTpsLat = Number(r.lat); sTpsLng = Number(r.lng);
+          sTpsOrigLat = Number(r.lat); sTpsOrigLng = Number(r.lng);
+          $('sFLat').value = Number(r.lat).toFixed(7);
+          $('sFLng').value = Number(r.lng).toFixed(7);
+        } else {
+          sTpsLat = null; sTpsLng = null;
+          sTpsOrigLat = null; sTpsOrigLng = null;
+          $('sFLat').value = ''; $('sFLng').value = '';
+        }
+        $('sBtnSaveGps').style.display = 'none';
+        if ($('saksiMapWrap').style.display !== 'none' && sMap) sMapSyncView();
+        else $('sMapInfo').textContent = sTpsLat !== null ? `📍 ${sTpsLabel} — ${Number(sTpsLat).toFixed(5)}, ${Number(sTpsLng).toFixed(5)} (klik "Pilih di Peta" untuk edit)` : `⚠️ ${sTpsLabel} belum ada GPS — buka peta untuk isi`;
+      } catch (err) {
+        console.error('sTpsChange gagal:', err.message);
+        $('sMapInfo').textContent = 'Gagal memuat lokasi TPS';
+      }
+    }
+
+    function sMapCenterTPS() {
+      if (!sMap) return;
+      if (sTpsLat !== null && sTpsLng !== null) sMap.setView([sTpsLat, sTpsLng], 16);
+      else alert('TPS terpilih belum punya koordinat GPS. Klik peta / geser pin untuk isi.');
+    }
+
+    function sMapGPS() {
+      if (!navigator.geolocation || !sMap) { alert('Geolocation tidak tersedia'); return; }
+      navigator.geolocation.getCurrentPosition(
+        (p) => { sMap.setView([p.coords.latitude, p.coords.longitude], 16); sMapSet(p.coords.latitude, p.coords.longitude); },
+        () => alert('Tidak bisa membaca lokasi perangkat'),
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    async function sMapSearch() {
+      const q = $('sMapSearch').value.trim();
+      if (!q || !sMap) return;
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=id&viewbox=103.5,-3.5,106.2,-6.2&bounded=1&q=${encodeURIComponent(q + ', Lampung')}`;
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const data = await res.json();
+        if (!data.length) { alert('Lokasi tidak ditemukan'); return; }
+        sMap.setView([parseFloat(data[0].lat), parseFloat(data[0].lon)], 14);
+      } catch (err) { alert('Pencarian gagal: ' + err.message); }
+    }
+
+    async function sSaveTpsLocation() {
+      const tpsId = $('sFTps').value;
+      if (!tpsId) { alert('Pilih TPS dulu'); return; }
+      const lat = $('sFLat').value.trim() === '' ? null : Number($('sFLat').value);
+      const lng = $('sFLng').value.trim() === '' ? null : Number($('sFLng').value);
+      if (lat === null || lng === null || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+        alert('Isi latitude & longitude dulu (klik peta / geser pin)'); return;
+      }
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) { alert('Koordinat di luar rentang'); return; }
+      try {
+        await wFetchJSON(`${TAPI}/${encodeURIComponent(tpsId)}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat, lng })
+        });
+        sTpsOrigLat = lat; sTpsOrigLng = lng;
+        sTpsLat = lat; sTpsLng = lng;
+        $('sBtnSaveGps').style.display = 'none';
+        $('sMapInfo').textContent = `✅ GPS tersimpan — 📍 ${sTpsLabel} — ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        // refresh tLoad cache if di tab Dapil juga terbuka
+        tLoad(tOffset);
+      } catch (err) { alert('Gagal simpan GPS: ' + err.message); }
+    }
+
     function tPage(delta) {
       tLoad(tOffset + delta * T_LIMIT);
     }
@@ -1726,6 +2387,12 @@
       $('sFKec').innerHTML = '<option value="">— Pilih —</option>';
       $('sFDesa').innerHTML = '<option value="">— Pilih —</option>';
       $('sFTps').innerHTML = '<option value="">— Pilih desa dulu —</option>';
+      sTpsLat = null; sTpsLng = null; sTpsLabel = '';
+      sTpsOrigLat = null; sTpsOrigLng = null;
+      $('sFLat').value = ''; $('sFLng').value = '';
+      $('sBtnSaveGps').style.display = 'none';
+      $('sMapInfo').textContent = '';
+      if (sMap) sMapSyncView();
       if (k) {
         const r = await wFetchJSON(`${WAPI}/kecamatan?kabupaten_id=${encodeURIComponent(k)}`);
         $('sFKec').innerHTML = '<option value="">— Pilih —</option>' + r.data.map((x) =>
@@ -1737,6 +2404,12 @@
       const k = $('sFKec').value;
       $('sFDesa').innerHTML = '<option value="">— Pilih —</option>';
       $('sFTps').innerHTML = '<option value="">— Pilih desa dulu —</option>';
+      sTpsLat = null; sTpsLng = null; sTpsLabel = '';
+      sTpsOrigLat = null; sTpsOrigLng = null;
+      $('sFLat').value = ''; $('sFLng').value = '';
+      $('sBtnSaveGps').style.display = 'none';
+      $('sMapInfo').textContent = '';
+      if (sMap) sMapSyncView();
       if (k) {
         const r = await wFetchJSON(`${WAPI}/desa?kecamatan_id=${encodeURIComponent(k)}`);
         $('sFDesa').innerHTML = '<option value="">— Pilih —</option>' + r.data.map((x) =>
@@ -1747,11 +2420,70 @@
     async function sDesaChange() {
       const d = $('sFDesa').value;
       $('sFTps').innerHTML = '<option value="">— Pilih desa dulu —</option>';
+      sTpsLat = null; sTpsLng = null; sTpsLabel = '';
+      sTpsOrigLat = null; sTpsOrigLng = null;
+      $('sFLat').value = ''; $('sFLng').value = '';
+      $('sBtnSaveGps').style.display = 'none';
+      $('sMapInfo').textContent = d ? 'Pilih TPS untuk melihat lokasi' : '';
+      if (sMap) sMapSyncView();
       if (d) {
         const r = await wFetchJSON(`${TAPI}?desa_id=${encodeURIComponent(d)}&limit=200`);
         $('sFTps').innerHTML = '<option value="">— Pilih TPS —</option>' + r.data.map((x) =>
           `<option value="${wEsc(x.id)}">TPS ${wEsc(x.no_tps)} (${wEsc(x.id)})</option>`).join('');
       }
+    }
+
+    // KTP helpers - reuse compress logic
+    function sKtpChange() {
+      const f = $('sFKtp').files[0];
+      $('sKtpStat').textContent = f ? `${f.name} (${(f.size/1024).toFixed(1)}KB) — akan dikompres & diunggah saat Simpan` : 'Belum pilih foto KTP';
+      $('sKtpClearWrap').style.display = (f || $('sKtpUrl').value) ? 'flex' : 'none';
+      if (f) {
+        $('sKtpPrev').src = URL.createObjectURL(f);
+        $('sKtpPrev').style.display = '';
+      } else if (!$('sKtpUrl').value) {
+        $('sKtpPrev').style.display = 'none';
+      }
+    }
+    function sOpenKtp(url, nama){
+      if(!url) return;
+      kOpenFoto(url, nama||'KTP', '🪪 Foto KTP Saksi');
+    }
+    function sKtpClear() {
+      $('sFKtp').value = '';
+      $('sKtpUrl').value = '';
+      $('sKtpPrev').style.display = 'none';
+      $('sKtpStat').textContent = 'Belum pilih foto KTP';
+      $('sKtpClearWrap').style.display = 'none';
+    }
+    async function sCompressKtp(file){
+      try{
+        const bmp = await createImageBitmap(file);
+        const maxDim = 1280, quality=0.82;
+        const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+        const w=Math.max(1, Math.round(bmp.width*scale)), h=Math.max(1, Math.round(bmp.height*scale));
+        const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(bmp,0,0,w,h);
+        const blob = await new Promise(res=>canvas.toBlob(res,'image/jpeg',quality));
+        bmp.close();
+        return blob || file;
+      } catch(e){ return file; }
+    }
+    async function sUploadKtp(){
+      const f=$('sFKtp').files[0];
+      if(!f) return $('sKtpUrl').value || null;
+      const origKB=(f.size/1024).toFixed(1);
+      let blob=f, mime=f.type||'image/jpeg', fname=f.name;
+      try{ blob=await sCompressKtp(f); mime='image/jpeg'; fname=f.name.replace(/\.[a-z0-9]+$/i,'')+'.jpg'; }catch(e){}
+      $('sKtpStat').textContent=`Mengompres & mengunggah KTP (${origKB}KB → ${(blob.size/1024).toFixed(1)}KB)...`;
+      const upRes=await fetch(`${location.origin}/api/c1/upload-request?filename=${encodeURIComponent(fname)}&content_type=${encodeURIComponent(mime)}`);
+      const up=await upRes.json();
+      if(!up.success) throw new Error(up.error||'gagal minta upload KTP');
+      const put=await fetch(up.upload_url,{method:'PUT',headers:{'Content-Type':mime},body:blob});
+      if(!put.ok) throw new Error(`upload KTP gagal (HTTP ${put.status})`);
+      $('sKtpUrl').value=up.image_url;
+      $('sKtpStat').textContent=`KTP terkompres & terunggah ✓ (${origKB}KB → ${(blob.size/1024).toFixed(1)}KB)`;
+      return up.image_url;
     }
 
     async function sLoad(offset) {
@@ -1766,20 +2498,22 @@
           <tr>
             <td><strong>${s.id}</strong></td>
             <td>${wEsc(s.nama)}</td>
-            <td>${wEsc(s.nik)}</td>
+            <td><span style="font-family:monospace; font-size:12px;">${wEsc(s.nik)}</span></td>
+            <td>${s.foto_ktp ? `<img src="${wEsc(s.foto_ktp)}" class="k-foto-thumb" style="width:36px;height:36px; object-fit:cover; border-radius:8px; cursor:zoom-in;" alt="KTP" title="Klik perbesar KTP" data-url="${wEsc(s.foto_ktp)}" data-nama="${wEsc(s.nama)}" onclick="sOpenKtp(this.dataset.url, this.dataset.nama)" />` : '<span style="color:var(--muted); font-size:11px;">—</span>'}</td>
             <td><span class="badge">${wEsc(s.username || '-')}</span></td>
             <td>${wEsc(s.no_hp || '-')}</td>
             <td><span class="badge">${wEsc(s.tps_id)}</span></td>
             <td>${wEsc(s.desa || '-')}${s.kecamatan ? ' / ' + wEsc(s.kecamatan) : ''}</td>
             <td>${s.kandidat_id ? `<span class="badge" style="background:#e0f2fe;color:#0369a1;">${wEsc(s.kandidat_id)}</span><br><small style="color:var(--muted);">${wEsc(s.kandidat_nama || '')}</small>` : '<span style="color:var(--muted);">-</span>'}</td>
+            <td>${s.bank ? `<span class="badge" style="background:#f0fdf4; color:#14532d; border-color:#bbf7d0;">${wEsc(s.bank)}</span><br><small style="font-family:monospace; font-size:11px;">${wEsc(s.no_rekening||'-')}</small>` : '<span style="color:var(--muted); font-size:11px;">-</span>'}</td>
             <td style="white-space: nowrap;">
               <button class="btn btn-ghost" onclick="sEdit(${s.id})">✏️</button>
               <button class="btn btn-ghost" onclick="sResetWa(${s.id})">💬 WA</button>
               <button class="btn btn-ghost" onclick="sDel(${s.id}, '${wEsc(s.nama).replace(/'/g, "\\'")}')">🗑️</button>
             </td>
-          </tr>`).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--muted);">Belum ada saksi</td></tr>';
+          </tr>`).join('') || '<tr><td colspan="11" style="text-align:center;color:var(--muted);">Belum ada saksi</td></tr>';
       } catch (err) {
-        $('sSaksiBody').innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--err);">${wEsc(err.message)}</td></tr>`;
+        $('sSaksiBody').innerHTML = `<tr><td colspan="11" style="text-align:center;color:var(--err);">${wEsc(err.message)}</td></tr>`;
       }
     }
 
@@ -1807,7 +2541,7 @@
       const tr = [...$('sSaksiBody').rows].find((tr) => tr.cells[0].textContent.trim() == String(id));
       if (!tr) { alert('Data tidak ada di halaman ini'); return; }
       const nama = tr.cells[1].textContent.trim();
-      const hp = tr.cells[4].textContent.trim();
+      const hp = tr.cells[5].textContent.trim();
       if (!confirm(`Reset password "${nama}" dan kirim via WA?`)) return;
       try {
         const d = await wFetchJSON(`${SAPI}/${id}/reset-password`, { method: 'POST' });
@@ -1823,13 +2557,41 @@
       $('sFEditId').value = id;
       $('sFNama').value = tr.cells[1].textContent.trim();
       $('sFNik').value = tr.cells[2].textContent.trim();
-      const uname = tr.cells[3].textContent.trim();
+      // KTP preview dari tabel (sementara, akan di-overwrite fetch akurat)
+      const ktpImg = tr.cells[3].querySelector('img');
+      if (ktpImg) { $('sKtpUrl').value = ktpImg.src; $('sKtpPrev').src = ktpImg.src; $('sKtpPrev').style.display=''; $('sKtpStat').textContent='Foto KTP tersimpan (pilih baru untuk ganti)'; $('sKtpClearWrap').style.display='flex'; } else { $('sKtpUrl').value=''; $('sKtpPrev').style.display='none'; $('sKtpStat').textContent='Belum pilih foto KTP'; $('sKtpClearWrap').style.display='none'; }
+      const uname = tr.cells[4].textContent.trim();
       $('sFUser').value = uname === '-' ? '' : uname;
-      const hp = tr.cells[4].textContent.trim();
+      const hp = tr.cells[5].textContent.trim();
       $('sFHp').value = hp === '-' ? '' : hp;
-      const tpsId = tr.cells[5].textContent.trim();
-      const kandBadge = tr.cells[7].querySelector('.badge');
+      const tpsId = tr.cells[6].textContent.trim();
+      const kandBadge = tr.cells[8].querySelector('.badge');
       $('sFKandidat').value = kandBadge ? kandBadge.textContent.trim() : '';
+      const bankBadge = tr.cells[9].querySelector('.badge');
+      $('sFBank').value = bankBadge && bankBadge.textContent.trim()!=='-' ? bankBadge.textContent.trim() : '';
+      const rekSmall = tr.cells[9].querySelector('small');
+      $('sFRek').value = rekSmall && rekSmall.textContent.trim()!=='-' ? rekSmall.textContent.trim() : '';
+      // ambil data lengkap via search NIK untuk foto_ktp, bank, keterangan akurat
+      try {
+        const nik = $('sFNik').value.trim();
+        const list = await wFetchJSON(`${SAPI}?search=${encodeURIComponent(nik)}&limit=5`);
+        const full = list.data.find(x=> String(x.id)===String(id)) || list.data[0];
+        if (full) {
+          $('sFKet').value = full.keterangan || '';
+          $('sKtpUrl').value = full.foto_ktp || '';
+          $('sFBank').value = full.bank || $('sFBank').value;
+          $('sFRek').value = full.no_rekening || $('sFRek').value;
+          if (full.foto_ktp) {
+            $('sKtpPrev').src = full.foto_ktp;
+            $('sKtpPrev').style.display='';
+            $('sKtpStat').textContent='Foto KTP tersimpan (pilih baru untuk ganti)';
+            $('sKtpClearWrap').style.display='flex';
+          } else {
+            // jika tidak ada di DB, pertahankan state awal
+            if(!$('sKtpUrl').value){ $('sKtpPrev').style.display='none'; $('sKtpStat').textContent='Belum pilih foto KTP'; $('sKtpClearWrap').style.display='none'; }
+          }
+        }
+      } catch(e){ console.error('fetch full saksi gagal', e.message); }
       // Preload TPS lama ke dropdown berjenjang (tak perlu pilih ulang bila tak diganti)
       try {
         const t = await wFetchJSON(`${TAPI}/${encodeURIComponent(tpsId)}`);
@@ -1844,6 +2606,7 @@
               $('sFDesa').value = d.desa_id;
               await sDesaChange();
               $('sFTps').value = tpsId;
+              await sTpsChange();
             }
           }
         }
@@ -1860,6 +2623,19 @@
       $('sFHp').value = '';
       $('sFKet').value = '';
       $('sFKandidat').value = '';
+      $('sFKtp').value = '';
+      $('sKtpUrl').value = '';
+      $('sKtpPrev').style.display = 'none';
+      $('sKtpStat').textContent = 'Belum pilih foto KTP';
+      $('sKtpClearWrap').style.display = 'none';
+      $('sFBank').value = '';
+      $('sFRek').value = '';
+      sTpsLat = null; sTpsLng = null; sTpsLabel = '';
+      sTpsOrigLat = null; sTpsOrigLng = null;
+      $('sFLat').value = ''; $('sFLng').value = '';
+      $('sBtnSaveGps').style.display = 'none';
+      $('sMapInfo').textContent = '';
+      if (sMap) sMapSyncView();
     }
 
     async function sSave() {
@@ -1867,14 +2643,23 @@
       const nama = $('sFNama').value.trim();
       const nik = $('sFNik').value.trim();
       const hp = $('sFHp').value.trim();
+      const bank = $('sFBank').value.trim().toUpperCase();
+      const norek = $('sFRek').value.trim();
       if (!nama) { alert('Nama wajib diisi'); return; }
       if (!/^[0-9]{16}$/.test(nik)) { alert('NIK wajib 16 digit angka'); return; }
       if (!hp) { alert('No. HP wajib diisi (untuk kirim WA)'); return; }
+      if (bank && !/^[A-Z ]+$/.test(bank)) { /* allow */ }
+      if (bank && norek && !/^[0-9]{8,20}$/.test(norek)) { alert('No. Rekening harus 8-20 digit angka'); return; }
+      if (!editId && !bank) { alert('Pilih Bank / E-Wallet'); return; }
+      if (!editId && !norek) { alert('Isi No. Rekening'); return; }
+      if (!editId && !$('sFKtp').files[0] && !$('sKtpUrl').value) { alert('Upload foto KTP wajib'); return; }
       try {
+        const fotoKtp = await sUploadKtp();
         if (editId) {
-          const body = { nama, nik, no_hp: hp, kandidat_id: $('sFKandidat').value || null };
+          const body = { nama, nik, no_hp: hp, kandidat_id: $('sFKandidat').value || null, keterangan: $('sFKet').value.trim() || null, bank: bank || null, no_rekening: norek || null, foto_ktp: fotoKtp };
           if ($('sFUser').value.trim()) body.username = $('sFUser').value.trim();
           if ($('sFTps').value) body.tps_id = $('sFTps').value;
+          // jika tidak ada foto baru dan sebelumnya null, kirim null untuk hapus, jika tetap ada kirim url
           await wFetchJSON(`${SAPI}/${editId}`, {
             method: 'PUT', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
@@ -1891,7 +2676,9 @@
               tps_id: $('sFTps').value,
               kandidat_id: $('sFKandidat').value || null,
               username: $('sFUser').value.trim() || null,
-              keterangan: $('sFKet').value.trim() || null
+              keterangan: $('sFKet').value.trim() || null,
+              foto_ktp: fotoKtp,
+              bank, no_rekening: norek
             })
           });
           sCancel();
@@ -1949,6 +2736,8 @@
     async function aLoad() {
       try {
         const d = await wFetchJSON(`${AAPI}/overview`);
+        const now = new Date().toLocaleString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+        if($('aUpdated')) $('aUpdated').textContent = now;
         $('aTPS').textContent = fmtID(d.summary.tps_masuk);
         $('aTx').textContent = fmtID(d.summary.total_transaksi);
         $('aSah').textContent = fmtID(d.summary.total_suara_sah);
@@ -1956,25 +2745,96 @@
         $('aBacklog').textContent = fmtID(d.antrean.backlog);
         $('aFail').textContent = fmtID(d.antrean.failed);
         $('aFail').style.color = d.antrean.failed > 0 ? 'var(--err)' : '';
+        // pct TPS & suara
+        const totalMaster = Number(d.master.tps_master||0);
+        const pctTps = totalMaster ? ((Number(d.summary.tps_masuk)/totalMaster)*100).toFixed(1) : '0.0';
+        if($('aTpsPct')) $('aTpsPct').textContent = `${pctTps}% dari ${fmtID(totalMaster)} TPS`;
+        const totalSah = Number(d.summary.total_suara_sah||0), totalTidak=Number(d.summary.total_suara_tidak_sah||0), totalSuara= totalSah+totalTidak;
+        if($('aSahPct')) $('aSahPct').textContent = totalSuara ? `${((totalSah/totalSuara)*100).toFixed(1)}% dari total` : '—';
+        if($('aTidakPct')) $('aTidakPct').textContent = totalSuara ? `${((totalTidak/totalSuara)*100).toFixed(1)}% dari total` : '—';
+        if($('aHealth')){
+          const isErr = d.antrean.failed>0 || !!d.antrean.error;
+          $('aHealth').textContent = isErr ? '⚠️ Perlu perhatian' : '● Sehat';
+          $('aHealth').style.background = isErr ? '#fef2f2' : 'var(--ok-soft)';
+          $('aHealth').style.color = isErr ? 'var(--err)' : 'var(--ok)';
+          $('aHealth').style.borderColor = isErr ? '#fecaca' : '#a7f3d0';
+        }
         const q = d.antrean;
-        $('aQueue').innerHTML =
+        // legacy hidden div
+        if($('aQueue')) $('aQueue').innerHTML =
           `<span>Queue <strong>c1-queue</strong>:</span><span>waiting <strong>${fmtID(q.waiting)}</strong></span>` +
           `<span>active <strong>${fmtID(q.active)}</strong></span><span>completed <strong>${fmtID(q.completed)}</strong></span>` +
           `<span>failed <strong>${fmtID(q.failed)}</strong></span><span>delayed <strong>${fmtID(q.delayed)}</strong></span>` +
           (q.error ? `<span style="color:var(--err);">queue error: ${wEsc(q.error)}</span>` : '');
+        // pipeline pills & bar
+        if($('aQueuePills')){
+          $('aQueuePills').innerHTML = `
+            <span class="queue-pill waiting"><span>⏳</span> waiting <b>${fmtID(q.waiting)}</b></span>
+            <span class="queue-pill active"><span>⚡</span> active <b>${fmtID(q.active)}</b></span>
+            <span class="queue-pill completed"><span>✅</span> done <b>${fmtID(q.completed)}</b></span>
+            <span class="queue-pill failed"><span>❌</span> failed <b>${fmtID(q.failed)}</b></span>
+            <span class="queue-pill delayed"><span>⏸️</span> delayed <b>${fmtID(q.delayed)}</b></span>`;
+        }
+        if($('aBacklogBadge')) $('aBacklogBadge').textContent = `backlog ${fmtID(q.backlog)}`;
+        const totalQ = Number(q.waiting||0)+Number(q.active||0)+Number(q.completed||0)+Number(q.failed||0)+Number(q.delayed||0);
+        const pctQ = totalQ ? Math.round((Number(q.completed||0)/totalQ)*100) : 0;
+        if($('aQueuePct')) $('aQueuePct').textContent = `${pctQ}% selesai`;
+        if($('aQueueBar')) $('aQueueBar').style.width = `${pctQ}%`;
+        if($('aQueueBar')) $('aQueueBar').style.background = q.failed>0 ? 'linear-gradient(90deg,#dc2626,#f59e0b)' : 'linear-gradient(90deg,#2563eb,#06b6d4)';
+        if($('aQueueErr')){
+          if(q.error){ $('aQueueErr').textContent='Queue error: '+q.error; $('aQueueErr').style.display=''; } else { $('aQueueErr').style.display='none'; }
+        }
         const m = d.master;
-        $('aMaster').innerHTML =
+        if($('aMaster')) $('aMaster').innerHTML =
           `<span>Master:</span><span>kategori <strong>${m.kategori}</strong></span><span>kandidat <strong>${m.kandidat}</strong></span>` +
           `<span>tps <strong>${m.tps_master}</strong></span><span>prov <strong>${m.provinsi}</strong></span>` +
           `<span>kab <strong>${m.kabupaten}</strong></span><span>kec <strong>${m.kecamatan}</strong></span>` +
           `<span>desa <strong>${fmtID(m.desa)}</strong></span><span>admin <strong>${m.admin_users}</strong></span>` +
           `<span>sesi aktif <strong>${m.sesi_aktif}</strong></span>`;
-        $('aKatBody').innerHTML = d.per_kategori.map((r) => `
+        if($('aMasterGrid')){
+          $('aMasterGrid').innerHTML = `
+            <div class="master-item"><span>🏷️ Kategori</span><strong>${fmtID(m.kategori)}</strong></div>
+            <div class="master-item"><span>👥 Kandidat</span><strong>${fmtID(m.kandidat)}</strong></div>
+            <div class="master-item"><span>📍 TPS Master</span><strong>${fmtID(m.tps_master)}</strong></div>
+            <div class="master-item"><span>🗺️ Provinsi</span><strong>${fmtID(m.provinsi)}</strong></div>
+            <div class="master-item"><span>🏙️ Kab/Kota</span><strong>${fmtID(m.kabupaten)}</strong></div>
+            <div class="master-item"><span>🏘️ Kecamatan</span><strong>${fmtID(m.kecamatan)}</strong></div>
+            <div class="master-item"><span>🏡 Desa</span><strong>${fmtID(m.desa)}</strong></div>
+            <div class="master-item"><span>👤 Admin</span><strong>${fmtID(m.admin_users)}</strong></div>`;
+        }
+        // per kategori - table + cards presisi
+        const katRows = d.per_kategori || [];
+        if($('aKatCount')) $('aKatCount').textContent = `${fmtID(katRows.length)} kategori`;
+        $('aKatBody').innerHTML = katRows.map((r) => {
+          const sah=Number(r.suara_sah||0), tidak=Number(r.suara_tidak_sah||0), tot=sah+tidak;
+          const pctSah = tot? (sah/tot*100).toFixed(0):0, pctTidak= tot? (tidak/tot*100).toFixed(0):0;
+          return `
           <tr>
             <td><span class="badge">${wEsc(r.kategori_pemilihan_id)}</span><br><small style="color:var(--muted);">${wEsc(r.nama_pemilihan)}</small></td>
             <td>${fmtID(r.tps_masuk)}</td><td>${fmtID(r.total_transaksi)}</td>
-            <td>${fmtID(r.suara_sah)}</td><td>${fmtID(r.suara_tidak_sah)}</td>
-          </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);">Belum ada data</td></tr>';
+            <td>${fmtID(sah)}</td><td>${fmtID(tidak)}</td>
+            <td>
+              <div class="kat-bar" style="min-width:90px;"><div class="kat-bar-sah" style="width:${pctSah}%"></div><div class="kat-bar-tidak" style="width:${pctTidak}%"></div></div>
+              <div style="font-size:10px; color:var(--muted); margin-top:4px; font-weight:700;">${pctSah}% sah • ${pctTidak}% tidak</div>
+            </td>
+          </tr>`;
+        }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);">Belum ada data</td></tr>';
+        if($('aKatCards')){
+          $('aKatCards').innerHTML = katRows.map(r=>{
+            const sah=Number(r.suara_sah||0), tidak=Number(r.suara_tidak_sah||0), tot=sah+tidak;
+            const pctSah= tot? (sah/tot*100).toFixed(0):0;
+            return `<div class="kat-card">
+              <div class="kat-card-head"><span class="kat-card-title">${wEsc(r.nama_pemilihan)}</span><span class="badge">${wEsc(r.kategori_pemilihan_id)}</span></div>
+              <div class="kat-card-sub">${fmtID(r.tps_masuk)} TPS masuk • ${fmtID(r.total_transaksi)} transaksi</div>
+              <div class="kat-bar" style="margin-top:10px;"><div class="kat-bar-sah" style="width:${pctSah}%"></div><div class="kat-bar-tidak" style="width:${100-pctSah}%"></div></div>
+              <div class="kat-stats">
+                <div class="kat-stat"><b>${fmtID(sah)}</b><span>Sah</span></div>
+                <div class="kat-stat"><b>${fmtID(tidak)}</b><span>Tidak Sah</span></div>
+                <div class="kat-stat"><b>${fmtID(r.tps_masuk)}</b><span>TPS</span></div>
+              </div>
+            </div>`;
+          }).join('') || '<div style="grid-column:1/-1; text-align:center; color:var(--muted); padding:14px; background:#fff; border:1px dashed var(--border); border-radius:12px;">Belum ada kategori</div>';
+        }
       } catch (err) {
         console.error('aLoad gagal:', err.message);
       }
@@ -1987,17 +2847,22 @@
         if ($('aFKat').value) p.set('kategori_pemilihan_id', $('aFKat').value);
         if ($('aFTps').value.trim()) p.set('tps', $('aFTps').value.trim());
         const d = await wFetchJSON(`${AAPI}/transaksi?${p.toString()}`);
-        $('aPageInfo').textContent = `Total ${fmtID(d.total)} · tampil ${d.offset + 1}–${d.offset + d.data.length}`;
-        const ocr = { 0: 'pending', 1: 'ok', 2: 'gagal' };
+        $('aPageInfo').textContent = `Total ${fmtID(d.total)} · tampil ${d.total ? d.offset + 1 : 0}–${d.offset + d.data.length}`;
+        if($('aTrxBadge')) $('aTrxBadge').textContent = `${fmtID(d.total)} entri`;
+        const ocrMap = {
+          0: '<span class="badge" style="background:#fef3c7; color:#92400e; border-color:#fde68a;">⏳ pending</span>',
+          1: '<span class="badge" style="background:#dcfce7; color:#14532d; border-color:#bbf7d0;">✅ ok</span>',
+          2: '<span class="badge" style="background:#fee2e2; color:#991b1b; border-color:#fecaca;">❌ gagal</span>'
+        };
         $('aTrxBody').innerHTML = d.data.map((t) => `
           <tr>
-            <td>${new Date(t.created_at).toLocaleString('id-ID')}</td>
-            <td><strong>${wEsc(t.tps_id)}</strong></td>
+            <td style="white-space:nowrap; font-size:12px;">${new Date(t.created_at).toLocaleString('id-ID')}</td>
+            <td><strong style="font-family:monospace; font-size:12.5px; background:#f8fafc; padding:3px 6px; border-radius:6px; border:1px solid #f1f5f9;">${wEsc(t.tps_id)}</strong></td>
             <td><span class="badge">${wEsc(t.kategori_pemilihan_id)}</span></td>
-            <td>${fmtID(t.total_suara_sah)}</td><td>${fmtID(t.total_suara_tidak_sah)}</td>
-            <td>${t.jml_detail} kandidat</td><td>${ocr[t.status_ocr] ?? t.status_ocr}</td>
-            <td><a href="${wEsc(t.image_url)}" target="_blank">Lihat ↗</a></td>
-          </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--muted);">Tidak ada data</td></tr>';
+            <td><span style="font-weight:800; color:var(--ok);">${fmtID(t.total_suara_sah)}</span></td><td><span style="font-weight:800; color:var(--err);">${fmtID(t.total_suara_tidak_sah)}</span></td>
+            <td><span class="badge" style="background:#fff; border-color:var(--border);">${t.jml_detail} kandidat</span></td><td>${ocrMap[t.status_ocr] ?? `<span class="badge">${wEsc(String(t.status_ocr))}</span>`}</td>
+            <td><a href="${wEsc(t.image_url)}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; background:var(--text); color:#fff; padding:6px 10px; border-radius:8px; font-size:12px; text-decoration:none;">Lihat ↗</a></td>
+          </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--muted); padding:18px;">Belum ada transaksi</td></tr>';
       } catch (err) {
         $('aTrxBody').innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--err);">${wEsc(err.message)}</td></tr>`;
       }
@@ -2009,5 +2874,52 @@
 
     wRefreshAuthUI();
   </script>
+
+  <!-- Modal Foto (Kandidat & KTP Saksi) -->
+  <div id="kFotoModal" class="k-modal" onclick="if(event.target===this) kFotoModalClose()" style="display:none;">
+    <div class="k-modal-card" style="max-width:560px;">
+      <div class="k-modal-head">
+        <h3><span id="kFotoModalTitle">🖼️ Foto Kandidat</span><br><small id="kFotoModalCap" style="font-weight:600;color:var(--muted);"></small></h3>
+        <button class="k-modal-close" onclick="kFotoModalClose()" aria-label="Tutup">✕</button>
+      </div>
+      <div class="k-modal-body" style="padding:12px;">
+        <img id="kFotoModalImg" class="k-modal-foto" alt="foto" />
+        <div style="display:flex; gap:8px; margin-top:10px; justify-content:center;">
+          <a id="kFotoModalDown" href="#" target="_blank" class="btn btn-ghost" style="font-size:12px;">⬇️ Buka Tab Baru</a>
+          <button class="btn btn-ghost" onclick="kFotoModalClose()" style="font-size:12px;">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detail Kandidat -->
+  <div id="kDetailModal" class="k-modal" onclick="if(event.target===this) kDetailClose()" style="display:none;">
+    <div class="k-modal-card">
+      <div class="k-modal-head">
+        <h3>📄 Detail Kandidat<br><small id="kDetailId" style="font-family:monospace; background:#f1f5f9; padding:2px 6px; border-radius:6px;"></small></h3>
+        <button class="k-modal-close" onclick="kDetailClose()" aria-label="Tutup">✕</button>
+      </div>
+      <div class="k-modal-body">
+        <div class="k-detail-grid">
+          <div>
+            <img id="kDetailFoto" class="k-detail-foto" alt="foto kandidat" style="display:none;" />
+            <button id="kDetailFotoBtn" class="btn btn-ghost" style="width:100%; margin-top:8px; display:none;" onclick="">🔍 Perbesar Foto</button>
+          </div>
+          <div class="k-detail-meta">
+            <div class="k-detail-row"><b>Nama</b><span id="kDetailNama">-</span></div>
+            <div class="k-detail-row"><b>Partai</b><span id="kDetailPartai">-</span></div>
+            <div class="k-detail-row"><b>Kategori</b><span id="kDetailKategori">-</span></div>
+            <div class="k-detail-row"><b>Dapil</b><span id="kDetailDapil">-</span></div>
+            <div class="k-detail-row"><b>Tipe</b><span id="kDetailTipe">-</span></div>
+            <div class="k-detail-row"><b>No. Urut</b><span id="kDetailNo">-</span></div>
+          </div>
+        </div>
+        <div style="margin-top:14px;"><b style="font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:#475569;">Keterangan / Detail</b><div id="kDetailKet" class="k-detail-ket empty">-</div></div>
+      </div>
+      <div class="k-modal-actions">
+        <button class="btn btn-ghost" onclick="kDetailClose()">Tutup</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
