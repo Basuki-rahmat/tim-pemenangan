@@ -204,7 +204,7 @@ input:focus,select:focus,textarea:focus{outline:none;background:#fff;border-colo
           <div><label>Pemilih Hadir *</label><input id="sc1Hadir" type="number" min="0" max="800" placeholder="hadir" oninput="sc1Calc()" /></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
-          <div><label>Suara Sah *</label><input id="sc1Sah" type="number" min="0" placeholder="sah" oninput="sc1Calc()" /></div>
+          <div><label>Suara Sah Kandidat *</label><input id="sc1Sah" type="number" min="0" placeholder="sah" oninput="sc1Calc()" /></div>
           <div><label>Suara Batal *</label><input id="sc1Batal" type="number" min="0" placeholder="batal" oninput="sc1Calc()" /></div>
         </div>
         <div id="sc1CalcInfo" class="badge" style="margin-top:8px;background:#fff;">Hadir = Sah + Batal</div>
@@ -563,8 +563,9 @@ function sc1Calc(){
   const vs=$('sc1DetailVs');
   if(!isNaN(sah)){
     if(sum===sah) { vs.textContent='✅ Detail = Sah'; vs.style.background='#f0fdf4'; vs.style.borderColor='#bbf7d0'; vs.style.color='#14532d'; }
-    else if(sum===0) { vs.textContent='Isi detail (harus = Sah)'; vs.style.background='#fef3c7'; }
-    else { vs.textContent=`⚠️ Detail ${sum} ≠ Sah ${sah}`; vs.style.background='#fee2e2'; vs.style.color='#991b1b'; }
+    else if(sum===0) { vs.textContent='Isi detail (harus ≤ Sah)'; vs.style.background='#fef3c7'; vs.style.borderColor='#fde68a'; vs.style.color='#92400e'; }
+    else if(sum < sah) { vs.textContent=`⚠️ Detail ${sum} < Sah ${sah} — ${sah-sum} belum terisi (boleh)`; vs.style.background='#fef3c7'; vs.style.borderColor='#fde68a'; vs.style.color='#92400e'; }
+    else { vs.textContent=`❌ Detail ${sum} > Sah ${sah}`; vs.style.background='#fee2e2'; vs.style.borderColor='#fecaca'; vs.style.color='#991b1b'; }
   }
   const fixD=$('sc1FixDetailBtn');
   if(fixD){
@@ -667,12 +668,17 @@ async function sc1Save(){
   const detail=[...document.querySelectorAll('#sc1DetailBox input[data-kandidat]')].map(el=>({kandidat_id:el.dataset.kandidat, jumlah_suara:parseInt(el.value,10)||0})).filter(x=>x.jumlah_suara>0);
   const sum=detail.reduce((a,b)=>a+b.jumlah_suara,0);
   if(!detail.length) return alert('Isi detail per kandidat minimal 1');
-  if(sum!==sah){
-    if(confirm(`Total detail ${sum} ≠ Sah ${sah}\n\nPerbaiki detail jadi ${sah} (kandidat pertama)?`)){
-      // isi kandidat pertama
+  if(sum > sah){
+    if(confirm(`Total detail ${sum} > Sah ${sah}\n\nPerbaiki detail jadi ${sah}?`)){
       const first=[...document.querySelectorAll('#sc1DetailBox input[data-kandidat]')][0];
       if(first){ first.value=sah - (sum - (parseInt(first.value,10)||0)); sc1Calc(); }
+      const newSum=[...document.querySelectorAll('#sc1DetailBox input[data-kandidat]')].reduce((a,el)=>a+(parseInt(el.value,10)||0),0);
+      if(newSum > sah) return alert(`Masih ${newSum} > ${sah}`);
     } else return;
+  } else if(sum < sah){
+    if(!confirm(`Total detail ${sum} < Sah ${sah} — ada ${sah-sum} suara sah belum terisi (mungkin pemilih hadir tidak memilih kandidat). Lanjutkan simpan?`)){
+      return;
+    }
   }
   // upload multi 1-5
   let keys=[], firstKey=null;
