@@ -154,6 +154,16 @@ router.post('/absensi', requireSaksi, async (req,res)=>{
 router.get('/dana-list', requireSaksi, async (req,res)=>{
   try{ const [rows]=await readPool.query('SELECT * FROM saksi_dana WHERE saksi_id=? ORDER BY id DESC', [req.saksi.saksi_id]); res.json({success:true, data:rows}); }catch(e){ res.status(500).json({success:false, error:e.message}); }
 });
+router.get('/c1', requireSaksi, async (req,res)=>{
+  try{
+    const tpsId=req.saksi.tps_id;
+    const limit=Math.min(Math.max(parseInt(req.query.limit,10)||5,1),20);
+    const offset=Math.max(parseInt(req.query.offset,10)||0,0);
+    const [[c]]=await readPool.query('SELECT COUNT(*) total FROM transaksi_c1 WHERE tps_id=?', [tpsId]);
+    const [rows]=await readPool.query('SELECT id, tps_id, kategori_pemilihan_id, jumlah_dpt, jumlah_hadir, jumlah_surat_suara, surat_baik, surat_rusak, surat_cadangan, total_suara_sah, total_suara_tidak_sah, image_url, image_urls, status_ocr, created_at FROM transaksi_c1 WHERE tps_id=? ORDER BY created_at DESC LIMIT ? OFFSET ?', [tpsId, limit, offset]);
+    res.json({success:true, total:Number(c.total||0), data:rows});
+  }catch(e){ res.status(500).json({success:false, error:e.message}); }
+});
 
 router.get('/', async (req, res) => {
   const t0 = Date.now();
