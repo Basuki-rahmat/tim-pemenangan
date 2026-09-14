@@ -101,6 +101,38 @@ input:focus,select:focus,textarea:focus{outline:none;background:#fff;border-colo
         <div id="saksiMap" style="margin-top:8px;"></div>
         <p style="font-size:11px;color:var(--muted);margin-top:6px;">Pin biru = TPS tugas. Absensi wajib dalam radius 800m.</p>
       </div>
+      <div class="card" style="border-left:4px solid var(--brand);">
+        <h2>📋 Tugas & Fungsi Saksi TPS</h2>
+        <div style="display:grid;gap:10px;margin-top:10px;">
+          <div style="display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff;">
+            <span style="width:28px;height:28px;border-radius:9px;background:var(--brand-soft);border:1px solid #fecaca;display:grid;place-items:center;font-size:14px;flex-shrink:0;">⏰</span>
+            <div><b style="font-size:12.5px;">Jam Tugas</b><div style="font-size:12px;color:var(--muted);line-height:1.5;margin-top:2px;">Hadir <b>06:30 WIB</b> (30 menit sebelum buka) • Pemungutan <b>07:00–13:00</b> • Penghitungan s.d. selesai • Jam hadir otomatis tercatat saat foto absensi</div><div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:700;"><span style="width:6px;height:6px;border-radius:999px;background:var(--ok);display:inline-block;"></span> Jam hadir: <span id="todayJam" style="font-family:monospace;">—</span> WIB</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="border:1px solid var(--border);border-radius:11px;padding:10px;background:#fff;">
+              <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#0f172a;">🛡️ Fungsi Utama</div>
+              <ul style="font-size:11.5px;color:#334155;line-height:1.6;margin:6px 0 0 16px;">
+                <li>Mengawasi <b>persiapan TPS</b></li>
+                <li>Mengawasi <b>pemungutan suara</b></li>
+                <li>Mengawasi <b>penghitungan & rekap C1</b></li>
+                <li>Mendapat <b>salinan C1</b> plano</li>
+              </ul>
+            </div>
+            <div style="border:1px solid var(--border);border-radius:11px;padding:10px;background:#fff;">
+              <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#0f172a;">✅ Kewajiban</div>
+              <ul style="font-size:11.5px;color:#334155;line-height:1.6;margin:6px 0 0 16px;">
+                <li>Bawa <b>surat mandat + KTP</b></li>
+                <li>Absensi <b>kamera+GPS</b> di TPS</li>
+                <li>Catat <b>kejadian khusus</b></li>
+                <li>Lapor <b>pelanggaran</b> ke Korcam</li>
+              </ul>
+            </div>
+          </div>
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:8px 10px;font-size:11px;color:#92400e;line-height:1.5;">
+            <b>⚠️ Dilarang:</b> Memengaruhi pemilih, membawa atribut kampanye di TPS, atau mengganggu jalannya pemungutan suara.
+          </div>
+        </div>
+      </div>
       <div class="card" id="lastAbsCard" style="display:none;">
         <h2>🕒 Absensi Terakhir</h2>
         <div id="lastAbs"></div>
@@ -157,6 +189,46 @@ input:focus,select:focus,textarea:focus{outline:none;background:#fff;border-colo
       </div>
     </div>
 
+    <!-- Form C1 Saksi -->
+    <div id="tabC1" class="tab">
+      <div class="card">
+        <h2>📝 Input Suara — Form C1</h2>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">TPS otomatis dari penugasan Anda. Isi DPT/Hadir/Sah/Batal + foto C1 plano.</p>
+        <div style="padding:8px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;font-size:12px;margin-bottom:10px;">
+          <div style="font-weight:800;">TPS Tugas: <span id="sc1TpsLabel">—</span></div>
+          <div style="color:var(--muted);font-size:11px;" id="sc1TpsDetail">—</div>
+        </div>
+        <label>Kategori Pemilihan *</label><select id="sc1Kat" onchange="sc1KatChange()"><option value="">— Pilih —</option></select>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+          <div><label>Jumlah DPT *</label><input id="sc1Dpt" type="number" min="0" max="800" placeholder="otomatis" oninput="sc1Calc()" /></div>
+          <div><label>Pemilih Hadir *</label><input id="sc1Hadir" type="number" min="0" max="800" placeholder="hadir" oninput="sc1Calc()" /></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+          <div><label>Suara Sah *</label><input id="sc1Sah" type="number" min="0" placeholder="sah" oninput="sc1Calc()" /></div>
+          <div><label>Suara Batal *</label><input id="sc1Batal" type="number" min="0" placeholder="batal" oninput="sc1Calc()" /></div>
+        </div>
+        <div id="sc1CalcInfo" class="badge" style="margin-top:8px;background:#fff;">Hadir = Sah + Batal</div>
+        <div style="margin-top:12px;">
+          <label>Detail per Kandidat</label>
+          <div id="sc1DetailBox" style="display:grid;gap:8px;max-height:300px;overflow:auto;padding:2px;">
+            <div style="text-align:center;color:var(--muted);font-size:12px;padding:10px;border:1px dashed var(--border);border-radius:10px;">Pilih kategori</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px;"><span class="badge">Total: <b id="sc1DetailTotal">0</b></span><span class="badge" id="sc1DetailVs">harus = Sah</span></div>
+        </div>
+        <label style="margin-top:12px;">Upload Form C1 *</label>
+        <input id="sc1Foto" type="file" accept="image/*" onchange="sc1FotoChange()" />
+        <div class="k-foto-statline"><span id="sc1FotoStat">Belum pilih foto C1</span></div>
+        <img id="sc1FotoPrev" style="display:none;max-width:100%;border-radius:12px;margin-top:8px;border:1px solid var(--border);max-height:280px;object-fit:contain;background:#fff;" alt="C1" />
+        <input type="hidden" id="sc1FotoUrl" /><input type="hidden" id="sc1ImageKey" />
+        <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="sc1Save()">📤 Kirim C1</button>
+        <div id="sc1Msg" style="margin-top:8px;font-size:12px;"></div>
+      </div>
+      <div class="card">
+        <h2>📋 Riwayat C1 Saya</h2>
+        <div id="sc1List"></div>
+      </div>
+    </div>
+
     <!-- Profil -->
     <div id="tabProfil" class="tab">
       <div class="card">
@@ -173,6 +245,7 @@ input:focus,select:focus,textarea:focus{outline:none;background:#fff;border-colo
   <button class="active" onclick="switchSaksiTab('beranda')" data-tab="beranda"><span class="ic">🏠</span>Beranda</button>
   <button onclick="switchSaksiTab('absensi')" data-tab="absensi"><span class="ic">✅</span>Absensi</button>
   <button onclick="switchSaksiTab('dana')" data-tab="dana"><span class="ic">💰</span>Dana</button>
+  <button onclick="switchSaksiTab('c1')" data-tab="c1"><span class="ic">📝</span>C1</button>
   <button onclick="switchSaksiTab('profil')" data-tab="profil"><span class="ic">👤</span>Akun</button>
 </nav>
 
@@ -193,8 +266,14 @@ function switchSaksiTab(tab){
   if(el) el.classList.add('active');
   document.querySelectorAll('.saksi-nav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   window.scrollTo({top:0, behavior:'smooth'});
-  if(tab==='absensi') loadAbsensi();
+  if(tab==='absensi'){ 
+    const hm=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',hour12:false});
+    if(!$('abJam').value) $('abJam').value=hm;
+    const tj=$('todayJam'); if(tj) tj.textContent=hm+' WIB';
+    loadAbsensi(); 
+  }
   if(tab==='dana') loadDana();
+  if(tab==='c1') sc1Init();
 }
 
 async function doLogin(){
@@ -229,9 +308,12 @@ async function initDash(){
     $('sDesaBadge').textContent=wEsc(t.desa||'-');
     loadDashboard();
     initMap();
-    // default date
+    // default date & jam hadir (WIB)
     const today=new Date().toISOString().slice(0,10);
     if(!$('abTgl').value) $('abTgl').value=today;
+    const nowHM=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',hour12:false});
+    if(!$('abJam').value) $('abJam').value=nowHM;
+    const tj=$('todayJam'); if(tj) tj.textContent=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',hour12:false})+' WIB';
   }catch(e){
     localStorage.removeItem('saksi_token');
     $('loginCard').style.display=''; $('dash').style.display='none'; $('bottomNav').style.display='none';
@@ -248,10 +330,18 @@ async function loadDashboard(){
     $('mAbHadir').textContent=hadir;
     $('mDanaCair').textContent='Rp '+(Number(j.data.summary.cair)||0).toLocaleString('id-ID');
     $('mDanaTotal').textContent='Total Rp '+(Number(j.data.summary.total)||0).toLocaleString('id-ID');
-    // last absensi
+    // last absensi — jam hadir presisi WIB
     if(j.data.absensi.length){
       const a=j.data.absensi[0];
-      $('lastAbsCard').style.display=''; $('lastAbs').innerHTML=`<div style="display:flex;gap:10px;align-items:center;"><img src="${wEsc(a.foto_bukti||'')}" style="${a.foto_bukti?'width:48px;height:48px;object-fit:cover;border-radius:10px;border:1px solid var(--border);':'display:none'}" /><div style="flex:1;"><div style="font-weight:800;">${wEsc(a.tanggal.slice(0,10))} • ${wEsc(a.status)} ${a.jarak_meter!=null?`• ${a.jarak_meter}m ${a.is_gps_valid?'✅':'❌'}`:''}</div><div style="font-size:11px;color:var(--muted);">${wEsc(a.jam_hadir||'') } ${wEsc(a.keterangan||'')}</div></div></div>`;
+      const jamTxt = a.jam_hadir ? String(a.jam_hadir).slice(0,5)+' WIB' : '-';
+      $('lastAbsCard').style.display=''; $('lastAbs').innerHTML=`<div style="display:flex;gap:10px;align-items:center;"><img src="${wEsc(a.foto_bukti||'')}" style="${a.foto_bukti?'width:48px;height:48px;object-fit:cover;border-radius:10px;border:1px solid var(--border);cursor:pointer;':'display:none'}" onclick="if(this.src) window.open(this.src,'_blank')" /><div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${wEsc(a.tanggal.slice(0,10))} • ${wEsc(a.status)} • 🕒 ${wEsc(jamTxt)} ${a.jarak_meter!=null?`• ${a.jarak_meter}m ${a.is_gps_valid?'✅':'❌'}`:''}</div><div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${wEsc(a.keterangan||'Absensi via kamera HP + GPS TPS')}</div></div></div>`;
+    } else {
+      $('lastAbsCard').style.display='none';
+    }
+    // update jam hadir live di Beranda tiap menit
+    const tjLive=$('todayJam');
+    if(tjLive && !window._tjInterval){
+      window._tjInterval=setInterval(()=>{ const hm=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',hour12:false}); tjLive.textContent=hm+' WIB'; }, 60000);
     }
     // profil
     $('profilBox').innerHTML=`<div><b>Nama</b><br>${wEsc(curSaksi.nama)}</div><div style="margin-top:8px;"><b>NIK</b><br><span style="font-family:monospace;">${wEsc(j.data.saksi.nik||curSaksi.nik||'-')}</span></div><div style="margin-top:8px;"><b>TPS</b><br>${wEsc(j.data.tps?.id||curSaksi.tps_id)} • ${wEsc(j.data.tps?.desa||'')} / ${wEsc(j.data.tps?.kecamatan||'')}</div><div style="margin-top:8px;"><b>Bank</b><br>${wEsc(j.data.saksi.bank||'-')} • ${wEsc(j.data.saksi.no_rekening||'')}</div>`;
@@ -335,17 +425,21 @@ async function abCamSnap(){
   if(!v.srcObject){ alert('Buka kamera dulu'); return; }
   c.width=v.videoWidth||1280; c.height=v.videoHeight||720;
   c.getContext('2d').drawImage(v,0,0,c.width,c.height);
-  // GPS saat snap (lebih akurat)
+  // GPS & jam hadir saat snap (lebih akurat, WIB)
   try{
     const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout:7000}));
     abLat=pos.coords.latitude; abLng=pos.coords.longitude;
     $('abLat').value=abLat.toFixed(7); $('abLng').value=abLng.toFixed(7);
   }catch(ge){ alert('GPS wajib: '+ge.message); return; }
+  // jam hadir otomatis WIB saat foto diambil
+  const nowHM2=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',hour12:false});
+  if(!$('abJam').value) $('abJam').value=nowHM2;
+  const tj2=$('todayJam'); if(tj2) tj2.textContent=nowHM2+' WIB';
   abBlob=await new Promise(res=>c.toBlob(res,'image/jpeg',0.82));
   img.src=c.toDataURL('image/jpeg',0.82);
   img.style.display=''; v.style.display='none';
   $('abCamSnapBtn').style.display='none'; $('abCamRetakeBtn').style.display=''; $('abCamOpenBtn').style.display='none';
-  $('abFotoStat').textContent=`Tercapture ${(abBlob.size/1024).toFixed(1)}KB • GPS ${abLat.toFixed(5)},${abLng.toFixed(5)}`;
+  $('abFotoStat').textContent=`Tercapture ${(abBlob.size/1024).toFixed(1)}KB • GPS ${abLat.toFixed(5)},${abLng.toFixed(5)} • Jam ${nowHM2} WIB`;
   // update jarak lagi
   if(curTps && curTps.lat!=null){
     const j=Math.round(abHaversine(abLat,abLng, Number(curTps.lat), Number(curTps.lng)));
@@ -397,7 +491,10 @@ async function abSave(){
 async function loadAbsensi(){
   try{
     const j=await sFetch(`${API}/api/saksi/absensi`);
-    $('abList').innerHTML=j.data.map(a=>`<div style="display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff;margin-bottom:8px;"><img src="${wEsc(a.foto_bukti||'')}" style="${a.foto_bukti?'width:48px;height:48px;object-fit:cover;border-radius:10px;border:1px solid var(--border);':'display:none'}" /><div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:12px;">${wEsc(a.tanggal.slice(0,10))} • ${wEsc(a.status)} ${a.jarak_meter!=null?`• ${a.jarak_meter}m ${a.is_gps_valid?'✅':'❌'}`:''}</div><div style="font-size:11px;color:var(--muted);">${wEsc(a.jam_hadir||'') } ${wEsc(a.keterangan||'')}</div></div></div>`).join('') || '<div style="text-align:center;color:var(--muted);font-size:12px;padding:10px;">Belum ada absensi</div>';
+    $('abList').innerHTML=j.data.map(a=>{
+      const jamTxt = a.jam_hadir ? String(a.jam_hadir).slice(0,5)+' WIB' : '';
+      return `<div style="display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff;margin-bottom:8px;"><img src="${wEsc(a.foto_bukti||'')}" style="${a.foto_bukti?'width:48px;height:48px;object-fit:cover;border-radius:10px;border:1px solid var(--border);':'display:none'}" /><div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:12px;">${wEsc(a.tanggal.slice(0,10))} • ${wEsc(a.status)} • 🕒 ${wEsc(jamTxt)} ${a.jarak_meter!=null?`• ${a.jarak_meter}m ${a.is_gps_valid?'✅':'❌'}`:''}</div><div style="font-size:11px;color:var(--muted);">${wEsc(a.keterangan||'Absensi kamera+GPS')}</div></div></div>`;
+    }).join('') || '<div style="text-align:center;color:var(--muted);font-size:12px;padding:10px;">Belum ada absensi</div>';
   }catch(e){}
 }
 async function loadDana(){
@@ -405,6 +502,115 @@ async function loadDana(){
     const j=await sFetch(`${API}/api/saksi/dana-list`);
     $('danaList').innerHTML=j.data.map(d=>`<div style="display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff;margin-bottom:8px;"><div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#f97316);display:grid;place-items:center;color:#fff;font-weight:900;">Rp</div><div style="flex:1;"><div style="font-weight:800;">Rp ${Number(d.nominal).toLocaleString('id-ID')} • <span style="font-size:11px;" class="badge">${wEsc(d.status)}</span></div><div style="font-size:11px;color:var(--muted);">${wEsc(d.bank||'-')} ${wEsc(d.no_rekening||'')} • ${wEsc(d.tanggal_cair||'')}</div></div></div>`).join('') || '<div style="text-align:center;color:var(--muted);font-size:12px;padding:10px;">Belum ada dana</div>';
     // update metric in beranda if needed
+  }catch(e){}
+}
+
+// --- Form C1 Saksi (mobile) ---
+async function sc1Init(){
+  if(!curSaksi){ try{ const me=await sFetch(`${API}/api/saksi/me`); curSaksi=me.data; }catch(e){} }
+  if(!curSaksi) return;
+  const tpsId=curSaksi.tps_id;
+  $('sc1TpsLabel').textContent=tpsId;
+  // fetch TPS detail for DPT & desa
+  try{
+    const tj=await fetch(`${API}/api/tps/${encodeURIComponent(tpsId)}`).then(r=>r.json());
+    if(tj.success){
+      const t=tj.data;
+      $('sc1TpsDetail').textContent=`TPS ${wEsc(t.no_tps)} • DPT ${t.jumlah_pemilih} • ${wEsc(t.kelurahan||t.desa_nama||'')} / ${wEsc(t.kecamatan||t.kecamatan_nama||'')}`;
+      if(t.jumlah_pemilih!=null) $('sc1Dpt').value=t.jumlah_pemilih;
+      sc1Calc();
+    }
+  }catch(e){}
+  // kategori
+  try{
+    const k=await sFetch(`${API}/api/kandidat/kategori`);
+    $('sc1Kat').innerHTML='<option value="">— Pilih —</option>'+k.data.map(r=>`<option value="${wEsc(r.id)}">${wEsc(r.id)} — ${wEsc(r.nama_pemilihan)}</option>`).join('');
+  }catch(e){}
+  sc1Load();
+}
+async function sc1KatChange(){
+  const kat=$('sc1Kat').value;
+  const box=$('sc1DetailBox');
+  if(!kat){ box.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;padding:10px;border:1px dashed var(--border);border-radius:10px;">Pilih kategori</div>'; sc1Calc(); return; }
+  box.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;padding:10px;">Memuat kandidat...</div>';
+  try{
+    const d=await sFetch(`${API}/api/kandidat/list?kategori_pemilihan_id=${encodeURIComponent(kat)}`);
+    if(!d.data.length){ box.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;padding:10px;border:1px dashed var(--border);border-radius:10px;">Belum ada kandidat</div>'; return; }
+    box.innerHTML=d.data.map(k=>`
+      <div style="display:flex;gap:10px;align-items:center;border:1px solid var(--border);border-radius:11px;padding:8px 10px;background:#fff;">
+        ${k.foto? `<img src="${wEsc(k.foto)}" style="width:32px;height:32px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" />` : `<div style="width:32px;height:32px;border-radius:8px;background:#f1f5f9;display:grid;place-items:center;">👤</div>`}
+        <div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${wEsc(k.nama)} <span style="font-weight:600;color:var(--muted);font-size:11px;">#${k.no_urut}</span></div><div style="font-size:11px;color:var(--muted);">${wEsc(k.tipe_kandidat)} • ${wEsc(k.id)}</div></div>
+        <input type="number" min="0" placeholder="0" data-kandidat="${wEsc(k.id)}" oninput="sc1Calc()" style="width:84px;text-align:center;font-weight:800;background:#f8fafc;" />
+      </div>`).join('');
+    sc1Calc();
+  }catch(e){ box.innerHTML=`<div style="color:var(--err);font-size:12px;padding:8px;">${wEsc(e.message)}</div>`; }
+}
+function sc1Calc(){
+  const dpt=parseInt($('sc1Dpt').value,10), hadir=parseInt($('sc1Hadir').value,10), sah=parseInt($('sc1Sah').value,10), batal=parseInt($('sc1Batal').value,10);
+  const sum=[...document.querySelectorAll('#sc1DetailBox input[data-kandidat]')].reduce((a,el)=>a+(parseInt(el.value,10)||0),0);
+  $('sc1DetailTotal').textContent=sum;
+  const vs=$('sc1DetailVs');
+  if(!isNaN(sah)){
+    if(sum===sah) { vs.textContent='✅ Detail = Sah'; vs.style.background='#f0fdf4'; vs.style.borderColor='#bbf7d0'; vs.style.color='#14532d'; }
+    else if(sum===0) { vs.textContent='Isi detail (harus = Sah)'; vs.style.background='#fef3c7'; }
+    else { vs.textContent=`⚠️ Detail ${sum} ≠ Sah ${sah}`; vs.style.background='#fee2e2'; vs.style.color='#991b1b'; }
+  }
+  const info=$('sc1CalcInfo');
+  if(!isNaN(sah)&&!isNaN(batal)){
+    const exp=sah+batal;
+    if(!isNaN(hadir) && hadir!==exp){ info.textContent=`Hadir ${hadir} | Sah ${sah}+Batal ${batal}=${exp} ⚠️`; info.style.background='#fee2e2'; }
+    else if(!isNaN(hadir)) { info.textContent=`✅ Hadir ${hadir} = Sah ${sah}+Batal ${batal}`; info.style.background='#f0fdf4'; }
+  }
+}
+function sc1FotoChange(){
+  const f=$('sc1Foto').files[0];
+  $('sc1FotoStat').textContent=f? `${f.name} (${(f.size/1024).toFixed(1)}KB)` : 'Belum pilih foto C1';
+  if(f){ $('sc1FotoPrev').src=URL.createObjectURL(f); $('sc1FotoPrev').style.display=''; } else if(!$('sc1FotoUrl').value) $('sc1FotoPrev').style.display='none';
+}
+async function sc1Save(){
+  const kat=$('sc1Kat').value;
+  const dpt=parseInt($('sc1Dpt').value,10), hadir=parseInt($('sc1Hadir').value,10), sah=parseInt($('sc1Sah').value,10), batal=parseInt($('sc1Batal').value,10);
+  if(!curSaksi) return alert('Sesi habis, login ulang');
+  if(!kat) return alert('Pilih kategori');
+  if([dpt,hadir,sah,batal].some(v=>isNaN(v))) return alert('Isi DPT, Hadir, Sah, Batal');
+  if(hadir>dpt) return alert(`Hadir ${hadir} > DPT ${dpt}`);
+  if(sah+batal!==hadir) return alert(`Hadir harus = Sah+Batal (${sah}+${batal}=${sah+batal} ≠ ${hadir})`);
+  const detail=[...document.querySelectorAll('#sc1DetailBox input[data-kandidat]')].map(el=>({kandidat_id:el.dataset.kandidat, jumlah_suara:parseInt(el.value,10)||0})).filter(x=>x.jumlah_suara>0);
+  const sum=detail.reduce((a,b)=>a+b.jumlah_suara,0);
+  if(!detail.length) return alert('Isi detail per kandidat minimal 1');
+  if(sum!==sah) return alert(`Total detail ${sum} ≠ Sah ${sah}`);
+  // upload
+  let key=null;
+  const f=$('sc1Foto').files[0];
+  if(f){
+    let blob=f, mime=f.type||'image/jpeg', fname=f.name;
+    try{ const bmp=await createImageBitmap(f); const maxDim=1280; const scale=Math.min(1,maxDim/Math.max(bmp.width,bmp.height)); const w=Math.max(1,Math.round(bmp.width*scale)), h=Math.max(1,Math.round(bmp.height*scale)); const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h; canvas.getContext('2d').drawImage(bmp,0,0,w,h); blob=await new Promise(r=>canvas.toBlob(r,'image/jpeg',0.82)); bmp.close(); mime='image/jpeg'; fname=f.name.replace(/\.[a-z0-9]+$/i,'')+'.jpg'; }catch(e){}
+    $('sc1FotoStat').textContent='Mengunggah C1...';
+    const upRes=await fetch(`${API}/api/c1/upload-request?filename=${encodeURIComponent(fname)}&content_type=${encodeURIComponent(mime)}`);
+    const up=await upRes.json(); if(!up.success) throw new Error(up.error);
+    const put=await fetch(up.upload_url,{method:'PUT',headers:{'Content-Type':mime},body:blob}); if(!put.ok) throw new Error('upload gagal');
+    key=up.image_key; $('sc1FotoUrl').value=up.image_url; $('sc1ImageKey').value=key;
+  } else {
+    key=$('sc1ImageKey').value||null;
+    if(!key) return alert('Upload foto C1 wajib');
+  }
+  try{
+    $('sc1Msg').textContent='Mengirim...';
+    const r=await fetch(`${API}/api/c1/submit`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+saksiToken()},body:JSON.stringify({tps_id:curSaksi.tps_id, kategori_pemilihan_id:kat, image_key:key, suara_sah:sah, suara_tidak_sah:batal, detail_suara:detail, jumlah_dpt:dpt, jumlah_hadir:hadir})});
+    const j=await r.json(); if(!j.success) throw new Error(j.error);
+    $('sc1Msg').innerHTML='<span style="color:var(--ok);font-weight:800;">✅ Terkirim ke antrean</span>';
+    // reset detail inputs
+    document.querySelectorAll('#sc1DetailBox input').forEach(el=>el.value='');
+    sc1Calc(); sc1Load();
+  }catch(e){ $('sc1Msg').innerHTML=`<span style="color:var(--err)">${wEsc(e.message)}</span>`; }
+}
+async function sc1Load(){
+  try{
+    if(!curSaksi) return;
+    const r=await sFetch(`${API}/api/c1/rekapitulasi?kategori_pemilihan_id=${encodeURIComponent($('sc1Kat').value||'')} `);
+    // riwayat personal: filter by tps? gunakan admin transaksi filtered by tps
+    const t=await sFetch(`${API}/api/admin/transaksi?limit=5&tps=${encodeURIComponent(curSaksi.tps_id)}`).catch(()=>({data:[]}));
+    $('sc1List').innerHTML=t.data.map(x=>`<div style="padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:#fff;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px;"><div><div style="font-weight:800;font-size:12px;">${wEsc(x.kategori_pemilihan_id)} • TPS ${wEsc(x.tps_id)}</div><div style="font-size:11px;color:var(--muted);">${new Date(x.created_at).toLocaleString('id-ID')} • Sah ${x.total_suara_sah} Batal ${x.total_suara_tidak_sah}</div></div><a href="${wEsc(x.image_url)}" target="_blank" class="badge" style="background:var(--text);color:#fff;">Lihat</a></div>`).join('') || '<div style="text-align:center;color:var(--muted);font-size:12px;padding:10px;">Belum ada riwayat</div>';
   }catch(e){}
 }
 

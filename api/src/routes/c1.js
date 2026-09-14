@@ -36,7 +36,9 @@ router.post('/submit', async (req, res) => {
     image_key,
     suara_sah,
     suara_tidak_sah,
-    detail_suara
+    detail_suara,
+    jumlah_dpt,
+    jumlah_hadir
   } = body;
 
   if (!tps_id || !kategori_pemilihan_id || !image_key) {
@@ -57,6 +59,22 @@ router.post('/submit', async (req, res) => {
       error: 'detail_suara wajib berupa array non-kosong berisi {kandidat_id, jumlah_suara}'
     });
   }
+  // validasi DPT & hadir (opsional tapi presisi)
+  let dpt = jumlah_dpt !== undefined && jumlah_dpt !== null && jumlah_dpt !== '' ? parseInt(jumlah_dpt,10) : null;
+  let hadir = jumlah_hadir !== undefined && jumlah_hadir !== null && jumlah_hadir !== '' ? parseInt(jumlah_hadir,10) : null;
+  if (dpt !== null && (!Number.isInteger(dpt) || dpt < 0 || dpt > 800)) {
+    return res.status(400).json({ success: false, error: 'jumlah_dpt harus 0-800' });
+  }
+  if (hadir !== null && (!Number.isInteger(hadir) || hadir < 0 || hadir > 800)) {
+    return res.status(400).json({ success: false, error: 'jumlah_hadir harus 0-800' });
+  }
+  if (dpt !== null && hadir !== null && hadir > dpt) {
+    return res.status(400).json({ success: false, error: 'jumlah_hadir tidak boleh > jumlah_dpt' });
+  }
+  if (hadir !== null && (suara_sah + suara_tidak_sah) !== hadir) {
+    // batal = tidak sah, hadir = sah + tidak sah
+    return res.status(400).json({ success: false, error: `jumlah_hadir (${hadir}) harus = suara_sah (${suara_sah}) + suara_tidak_sah (${suara_tidak_sah})` });
+  }
 
   const payload = {
     tps_id,
@@ -65,6 +83,8 @@ router.post('/submit', async (req, res) => {
     suara_sah,
     suara_tidak_sah,
     detail_suara,
+    jumlah_dpt: dpt,
+    jumlah_hadir: hadir,
     received_at: new Date().toISOString()
   };
 
