@@ -97,15 +97,15 @@ router.get('/transaksi', async (req, res) => {
       [kategori, kategori, tps, tps]
     );
     const [rows] = await readPool.query(
-      `SELECT t.id, t.tps_id, t.kategori_pemilihan_id, t.total_suara_sah,
-              t.total_suara_tidak_sah, t.image_url, t.status_ocr, t.created_at,
+      `SELECT t.id, t.tps_id, t.kategori_pemilihan_id, t.jumlah_dpt, t.jumlah_hadir,
+              t.total_suara_sah, t.total_suara_tidak_sah, t.image_url, t.status_ocr, t.created_at,
               COUNT(d.id) AS jml_detail
          FROM transaksi_c1 t
          LEFT JOIN detail_suara d ON d.transaksi_c1_id = t.id
         WHERE (? IS NULL OR t.kategori_pemilihan_id = ?)
           AND (? IS NULL OR t.tps_id LIKE ?)
-        GROUP BY t.id, t.tps_id, t.kategori_pemilihan_id, t.total_suara_sah,
-                 t.total_suara_tidak_sah, t.image_url, t.status_ocr, t.created_at
+        GROUP BY t.id, t.tps_id, t.kategori_pemilihan_id, t.jumlah_dpt, t.jumlah_hadir,
+                 t.total_suara_sah, t.total_suara_tidak_sah, t.image_url, t.status_ocr, t.created_at
         ORDER BY t.created_at DESC
         LIMIT ? OFFSET ?`,
       [kategori, kategori, tps, tps, limit, offset]

@@ -19,7 +19,7 @@ let buffer = [];
 let lastFlushAt = Date.now();
 let totalInserted = 0;
 
-const TX_COLS = 'id,tps_id,kategori_pemilihan_id,total_suara_sah,total_suara_tidak_sah,image_url,status_ocr';
+const TX_COLS = 'id,tps_id,kategori_pemilihan_id,jumlah_dpt,jumlah_hadir,total_suara_sah,total_suara_tidak_sah,image_url,status_ocr';
 const DET_COLS = 'transaksi_c1_id,kandidat_id,jumlah_suara';
 
 function imageUrl(key) {
@@ -38,6 +38,8 @@ async function insertBatch(batch) {
       id,
       d.tps_id,
       d.kategori_pemilihan_id,
+      d.jumlah_dpt ?? null,
+      d.jumlah_hadir ?? null,
       d.suara_sah,
       d.suara_tidak_sah,
       imageUrl(d.image_key),

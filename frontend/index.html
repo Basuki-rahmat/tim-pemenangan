@@ -437,6 +437,7 @@
         <button class="tab-btn" data-admin id="tabSaksiBtn" onclick="switchTab('saksi')">👥 Registrasi Saksi</button>
         <button class="tab-btn" data-admin id="tabAbsensiBtn" onclick="switchTab('absensi')">✅ Absensi Saksi</button>
         <button class="tab-btn" data-admin id="tabDanaBtn" onclick="switchTab('dana')">💰 Dana Saksi</button>
+        <button class="tab-btn" data-admin id="tabC1Btn" onclick="switchTab('c1')">📝 Form C1</button>
       </div>
     </nav>
     <div class="side-footer">
@@ -1015,6 +1016,92 @@
       </div>
     </div>
 
+    <!-- TAB FORM C1 -->
+    <div id="tabC1" class="tab-content">
+      <div class="card" id="c1LoginCard" style="max-width: 420px; margin: 0 auto 20px;">
+        <h2>🔐 Area Saksi/Admin</h2>
+        <p style="font-size: 13px; color: var(--muted);">Silakan login dulu untuk input Form C1.</p>
+        <button class="btn btn-primary" onclick="switchTab('admin')">Ke Halaman Login</button>
+      </div>
+      <div id="c1Body" style="display:none;">
+        <div class="card" style="margin-bottom:16px; border-left:4px solid var(--brand);">
+          <h2>📝 Form Suara — Upload Form C1</h2>
+          <p style="font-size:12px; color:var(--muted); margin-top:4px;">Isi <b>DPT</b> (dari Master TPS) • <b>Hadir</b> • <b>Sah</b> • <b>Batal/Tidak Sah</b> • Upload foto Form C1 plano. <span style="background:#fef3c7; padding:2px 6px; border-radius:6px; border:1px solid #fde68a;">Hadir = Sah + Batal</span> &amp; <span style="background:#f0fdf4; padding:2px 6px; border-radius:6px; border:1px solid #bbf7d0;">Hadir ≤ DPT</span></p>
+
+          <div class="row2" style="grid-template-columns: 1fr 1fr 1fr 1fr; margin-top:12px;">
+            <div><label>Kab/Kota</label><select id="c1FKab" onchange="c1KabChange()"><option value="">— Pilih —</option></select></div>
+            <div><label>Kecamatan</label><select id="c1FKec" onchange="c1KecChange()"><option value="">— Pilih —</option></select></div>
+            <div><label>Desa</label><select id="c1FDesa" onchange="c1DesaChange()"><option value="">— Pilih —</option></select></div>
+            <div><label>TPS *</label><select id="c1FTps" onchange="c1TpsChange()"><option value="">— Pilih desa dulu —</option></select></div>
+          </div>
+
+          <div class="row2" style="grid-template-columns: 1fr 1fr; margin-top:10px;">
+            <div><label>Kategori Pemilihan *</label><select id="c1FKat" onchange="c1KatChange()"><option value="">— Pilih —</option></select></div>
+            <div><label>TPS Info</label><div id="c1TpsInfo" style="font-size:12px; color:var(--muted); margin-top:6px; min-height:32px; padding:8px 10px; background:#f8fafc; border:1px solid #f1f5f9; border-radius:10px;">Pilih TPS untuk lihat DPT</div></div>
+          </div>
+
+          <div class="row2" style="grid-template-columns: 1fr 1fr 1fr 1fr; margin-top:10px;">
+            <div><label>Jumlah DPT *</label><input id="c1FDpt" type="number" min="0" max="800" placeholder="otomatis dari Master TPS" oninput="c1Calc()" /></div>
+            <div><label>Pemilih Hadir *</label><input id="c1FHadir" type="number" min="0" max="800" placeholder="hadir" oninput="c1Calc()" /></div>
+            <div><label>Suara Sah *</label><input id="c1FSah" type="number" min="0" max="800" placeholder="sah" oninput="c1Calc()" /></div>
+            <div><label>Suara Batal / Tidak Sah *</label><input id="c1FBatal" type="number" min="0" max="800" placeholder="batal" oninput="c1Calc()" /></div>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+            <span id="c1CalcInfo" class="badge" style="background:#fff; border-color:var(--border);">Hadir = Sah + Batal • Hadir ≤ DPT</span>
+            <span id="c1DptInfo" class="badge" style="background:#f0fdf4; border-color:#bbf7d0; color:#14532d; display:none;"></span>
+          </div>
+
+          <div style="margin-top:14px;">
+            <label>Detail Suara per Kandidat <span style="font-weight:400; text-transform:none; color:var(--muted);">(otomatis sesuai kategori)</span></label>
+            <div id="c1DetailBox" style="display:grid; gap:8px; margin-top:8px; max-height:320px; overflow:auto; padding:2px;">
+              <div style="text-align:center; color:var(--muted); font-size:12px; padding:12px; border:1px dashed var(--border); border-radius:10px;">Pilih kategori untuk memuat kandidat</div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+              <span class="badge">Total detail: <b id="c1DetailTotal">0</b></span>
+              <span class="badge" id="c1DetailVsSah" style="background:#fef3c7; border-color:#fde68a;">harus = Suara Sah</span>
+            </div>
+          </div>
+
+          <div style="margin-top:14px;">
+            <label>Upload Form C1 * <span style="font-weight:400; text-transform:none; color:var(--muted);">(foto plano, auto compress)</span></label>
+            <input id="c1FFoto" type="file" accept="image/*" onchange="c1FotoChange()" />
+            <div class="k-foto-statline"><span id="c1FotoStat">Belum pilih foto C1</span></div>
+            <img id="c1FotoPrev" style="display:none; max-width:100%; border-radius:12px; margin-top:8px; border:1px solid var(--border); box-shadow:var(--shadow-sm); cursor:pointer; max-height:320px; object-fit:contain; background:#fff;" alt="preview C1" onclick="if(this.src) sOpenKtp(this.src,'Form C1')" />
+            <input type="hidden" id="c1FotoUrl" value="" />
+            <input type="hidden" id="c1ImageKey" value="" />
+          </div>
+
+          <div style="display:flex; gap:10px; margin-top:16px;">
+            <button class="btn btn-primary" style="width:auto; flex:1;" onclick="c1Save()">📤 Kirim C1 ke Antrean</button>
+            <button class="btn btn-ghost" onclick="c1Cancel()">Batal</button>
+          </div>
+          <div id="c1Msg" style="margin-top:10px; font-size:12px;"></div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <h2>Riwayat Transaksi C1 Saya</h2>
+            <span id="c1TotalBadge" class="badge">0 data</span>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+            <select id="c1FFilterKat" style="flex:1; min-width:140px;" onchange="c1Load(0)"><option value="">— Semua Kategori —</option></select>
+            <input id="c1FFilterTps" placeholder="Cari TPS..." style="flex:1; min-width:140px;" oninput="c1Load(0)" />
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="audit-table">
+              <thead><tr><th>Waktu</th><th>TPS</th><th>Kategori</th><th>DPT</th><th>Hadir</th><th>Sah</th><th>Batal</th><th>C1</th><th>Status</th></tr></thead>
+              <tbody id="c1BodyRows"></tbody>
+            </table>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; gap:8px;">
+            <button class="btn btn-ghost" onclick="c1Page(-1)">← Sebelumnya</button>
+            <span id="c1PageInfo" class="badge">0 data</span>
+            <button class="btn btn-ghost" onclick="c1Page(1)">Berikutnya →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- TAB 4: DASHBOARD ADMIN -->
     <div id="tabDashAdmin" class="tab-content active">
       <div class="card" id="aLoginCard" style="max-width: 420px; margin: 0 auto 20px;">
@@ -1147,8 +1234,8 @@
     }
 
     function switchTab(tab) {
-      const tabs = ['admin', 'dashadmin', 'kandidat', 'dapil', 'tps', 'saksi', 'absensi', 'dana'];
-      const titles = { admin: 'Admin', dashadmin: 'DashAdmin', kandidat: 'Kandidat', dapil: 'Dapil', tps: 'Tps', saksi: 'Saksi', absensi: 'Absensi', dana: 'Dana' };
+      const tabs = ['admin', 'dashadmin', 'kandidat', 'dapil', 'tps', 'saksi', 'absensi', 'dana', 'c1'];
+      const titles = { admin: 'Admin', dashadmin: 'DashAdmin', kandidat: 'Kandidat', dapil: 'Dapil', tps: 'Tps', saksi: 'Saksi', absensi: 'Absensi', dana: 'Dana', c1: 'C1' };
       tabs.forEach((t) => {
         const name = titles[t];
         $('tab' + name).classList.toggle('active', t === tab);
@@ -1163,6 +1250,7 @@
       if (tab === 'saksi') sInit();
       if (tab === 'absensi') abInit();
       if (tab === 'dana') dnInit();
+      if (tab === 'c1') c1Init();
     }
 
     // Auto-refresh dashboard admin setiap 4 detik bila tab aktif + sudah login
@@ -1211,6 +1299,8 @@
       $('abBody').style.display = 'none';
       $('dnLoginCard').style.display = '';
       $('dnBody').style.display = 'none';
+      $('c1LoginCard').style.display = '';
+      $('c1Body').style.display = 'none';
       if (msg) {
         $('wLoginMsg').innerHTML = `<span class="err" style="color: var(--err);">${wEsc(msg)}</span>`;
       }
@@ -3351,6 +3441,200 @@
       if(!confirm('Hapus dana #'+id+'?')) return;
       try{ await wFetchJSON(`${DNAPI}/${id}`,{method:'DELETE'}); dnLoad(dnOffset); }catch(err){ alert('Gagal hapus: '+err.message); }
     }
+
+    // ================= FORM C1 =================
+    let c1Offset=0; const C1_LIMIT=15;
+    async function c1Init(){
+      if(!wToken()){
+        $('c1LoginCard').style.display='';
+        $('c1Body').style.display='none';
+        return;
+      }
+      try{
+        await wFetchJSON(`${location.origin}/api/auth/me`);
+        $('c1LoginCard').style.display='none';
+        $('c1Body').style.display='';
+        // load kab for TPS picker
+        const kb=await wFetchJSON(`${WAPI}/kabupaten?provinsi_id=18`);
+        const cur=$('c1FKab').value;
+        $('c1FKab').innerHTML='<option value="">— Pilih —</option>'+kb.data.map(r=>`<option value="${r.id}">${wEsc(r.nama)}</option>`).join('');
+        if([...$('c1FKab').options].some(o=>o.value===cur)) $('c1FKab').value=cur;
+        // kategori
+        const kat=await wFetchJSON(`${KAPI}/kategori`);
+        const kcur=$('c1FKat').value;
+        $('c1FKat').innerHTML='<option value="">— Pilih —</option>'+kat.data.map(r=>`<option value="${wEsc(r.id)}">${wEsc(r.id)} — ${wEsc(r.nama_pemilihan)}</option>`).join('');
+        $('c1FFilterKat').innerHTML='<option value="">— Semua Kategori —</option>'+kat.data.map(r=>`<option value="${wEsc(r.id)}">${wEsc(r.id)}</option>`).join('');
+        if([...$('c1FKat').options].some(o=>o.value===kcur)) $('c1FKat').value=kcur;
+        c1Load(0);
+      }catch(e){
+        localStorage.removeItem('c1_admin_token');
+        $('c1LoginCard').style.display=''; $('c1Body').style.display='none';
+      }
+    }
+    async function c1KabChange(){
+      const k=$('c1FKab').value;
+      $('c1FKec').innerHTML='<option value="">— Pilih —</option>';
+      $('c1FDesa').innerHTML='<option value="">— Pilih —</option>';
+      $('c1FTps').innerHTML='<option value="">— Pilih desa dulu —</option>';
+      if(k){
+        const r=await wFetchJSON(`${WAPI}/kecamatan?kabupaten_id=${encodeURIComponent(k)}`);
+        $('c1FKec').innerHTML='<option value="">— Pilih —</option>'+r.data.map(x=>`<option value="${x.id}">${wEsc(x.nama)}</option>`).join('');
+      }
+    }
+    async function c1KecChange(){
+      const k=$('c1FKec').value;
+      $('c1FDesa').innerHTML='<option value="">— Pilih —</option>';
+      $('c1FTps').innerHTML='<option value="">— Pilih desa dulu —</option>';
+      if(k){
+        const r=await wFetchJSON(`${WAPI}/desa?kecamatan_id=${encodeURIComponent(k)}`);
+        $('c1FDesa').innerHTML='<option value="">— Pilih —</option>'+r.data.map(x=>`<option value="${x.id}">${wEsc(x.nama)}</option>`).join('');
+      }
+    }
+    async function c1DesaChange(){
+      const d=$('c1FDesa').value;
+      $('c1FTps').innerHTML='<option value="">— Pilih desa dulu —</option>';
+      if(d){
+        const r=await wFetchJSON(`${TAPI}?desa_id=${encodeURIComponent(d)}&limit=200`);
+        $('c1FTps').innerHTML='<option value="">— Pilih TPS —</option>'+r.data.map(x=>`<option value="${wEsc(x.id)}">TPS ${wEsc(x.no_tps)} (${wEsc(x.id)}) DPT ${x.jumlah_pemilih}</option>`).join('');
+      }
+    }
+    async function c1TpsChange(){
+      const id=$('c1FTps').value;
+      if(!id){ $('c1TpsInfo').textContent='Pilih TPS untuk lihat DPT'; $('c1FDpt').value=''; return; }
+      try{
+        const d=await wFetchJSON(`${TAPI}/${encodeURIComponent(id)}`);
+        const r=d.data;
+        $('c1TpsInfo').innerHTML=`TPS <b>${wEsc(r.id)}</b> • No ${wEsc(r.no_tps)} • DPT <b>${r.jumlah_pemilih}</b> • ${wEsc(r.kelurahan||r.desa_nama||'')}, ${wEsc(r.kecamatan||r.kecamatan_nama||'')}`;
+        $('c1FDpt').value = r.jumlah_pemilih ?? '';
+        c1Calc();
+      }catch(e){ $('c1TpsInfo').textContent='Gagal load TPS: '+e.message; }
+    }
+    async function c1KatChange(){
+      const kat=$('c1FKat').value;
+      const box=$('c1DetailBox');
+      if(!kat){ box.innerHTML='<div style="text-align:center; color:var(--muted); font-size:12px; padding:12px; border:1px dashed var(--border); border-radius:10px;">Pilih kategori untuk memuat kandidat</div>'; c1Calc(); return; }
+      box.innerHTML='<div style="text-align:center; color:var(--muted); font-size:12px; padding:12px;">Memuat kandidat...</div>';
+      try{
+        const d=await wFetchJSON(`${KAPI}/list?kategori_pemilihan_id=${encodeURIComponent(kat)}`);
+        if(!d.data.length){ box.innerHTML='<div style="text-align:center; color:var(--muted); font-size:12px; padding:12px; border:1px dashed var(--border); border-radius:10px;">Belum ada kandidat untuk kategori ini</div>'; return; }
+        box.innerHTML=d.data.map(k=>`
+          <div style="display:flex; gap:10px; align-items:center; border:1px solid var(--border); border-radius:11px; padding:8px 10px; background:#fff;">
+            ${k.foto? `<img src="${wEsc(k.foto)}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;border:1px solid var(--border);flex-shrink:0;" alt="" />` : `<div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#f8fafc,#eef2f7);display:grid;place-items:center;font-size:16px;flex-shrink:0;">👤</div>`}
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:800; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${wEsc(k.nama)} <span style="font-weight:600; color:var(--muted); font-size:11px;">#${k.no_urut} ${wEsc(k.partai||'')}</span></div>
+              <div style="font-size:11px; color:var(--muted);">${wEsc(k.tipe_kandidat)} • ${wEsc(k.id)}</div>
+            </div>
+            <input type="number" min="0" placeholder="0" data-kandidat="${wEsc(k.id)}" oninput="c1Calc()" style="width:96px; text-align:center; font-weight:800; background:#f8fafc;" />
+          </div>`).join('');
+        c1Calc();
+      }catch(e){ box.innerHTML=`<div style="color:var(--err); font-size:12px; padding:10px;">Gagal load kandidat: ${wEsc(e.message)}</div>`; }
+    }
+    function c1Calc(){
+      const dpt=parseInt($('c1FDpt').value,10), hadir=parseInt($('c1FHadir').value,10), sah=parseInt($('c1FSah').value,10), batal=parseInt($('c1FBatal').value,10);
+      const detailInputs=[...document.querySelectorAll('#c1DetailBox input[data-kandidat]')];
+      const sumDetail=detailInputs.reduce((a,el)=>a+(parseInt(el.value,10)||0),0);
+      $('c1DetailTotal').textContent=sumDetail;
+      const vsSahEl=$('c1DetailVsSah');
+      if(!isNaN(sah)){
+        if(sumDetail===sah) { vsSahEl.textContent='✅ Detail = Suara Sah'; vsSahEl.style.background='#f0fdf4'; vsSahEl.style.borderColor='#bbf7d0'; vsSahEl.style.color='#14532d'; }
+        else if(sumDetail===0) { vsSahEl.textContent='Isi detail per kandidat (harus = Sah)'; vsSahEl.style.background='#fef3c7'; vsSahEl.style.borderColor='#fde68a'; vsSahEl.style.color='#92400e'; }
+        else { vsSahEl.textContent=`⚠️ Detail ${sumDetail} ≠ Sah ${sah}`; vsSahEl.style.background='#fee2e2'; vsSahEl.style.borderColor='#fecaca'; vsSahEl.style.color='#991b1b'; }
+      } else {
+        vsSahEl.textContent='Isi Suara Sah dulu';
+        vsSahEl.style.background='#fff'; vsSahEl.style.borderColor='var(--border)';
+      }
+      // hadir = sah + batal auto?
+      const calcInfo=$('c1CalcInfo');
+      if(!isNaN(sah) && !isNaN(batal)){
+        const expect=sah+batal;
+        if(isNaN(hadir) || hadir!==expect){
+          // auto isi hadir jika kosong atau tidak match? hanya info
+          calcInfo.textContent=`Hadir ${isNaN(hadir)?'—':hadir} | Sah ${sah} + Batal ${batal} = ${expect} ${!isNaN(hadir) && hadir!==expect? '⚠️ tidak cocok':'✅'}`;
+          calcInfo.style.background = (!isNaN(hadir) && hadir!==expect) ? '#fee2e2' : '#f0fdf4';
+          calcInfo.style.borderColor = (!isNaN(hadir) && hadir!==expect) ? '#fecaca' : '#bbf7d0';
+        } else {
+          calcInfo.textContent=`✅ Hadir ${hadir} = Sah ${sah} + Batal ${batal}`;
+          calcInfo.style.background='#f0fdf4'; calcInfo.style.borderColor='#bbf7d0';
+        }
+      } else {
+        calcInfo.textContent='Hadir = Sah + Batal • Hadir ≤ DPT';
+        calcInfo.style.background='#fff';
+      }
+      // DPT info
+      const dptInfo=$('c1DptInfo');
+      if(!isNaN(dpt) && !isNaN(hadir)){
+        if(hadir>dpt){ dptInfo.textContent=`⚠️ Hadir ${hadir} > DPT ${dpt}`; dptInfo.style.display=''; dptInfo.style.background='#fee2e2'; dptInfo.style.borderColor='#fecaca'; dptInfo.style.color='#991b1b'; }
+        else { dptInfo.textContent=`✅ Hadir ${hadir} ≤ DPT ${dpt} • Golput ${dpt-hadir}`; dptInfo.style.display=''; dptInfo.style.background='#f0fdf4'; }
+      } else dptInfo.style.display='none';
+    }
+    function c1FotoChange(){
+      const f=$('c1FFoto').files[0];
+      $('c1FotoStat').textContent=f? `${f.name} (${(f.size/1024).toFixed(1)}KB) — akan dikompres` : 'Belum pilih foto C1';
+      if(f){ $('c1FotoPrev').src=URL.createObjectURL(f); $('c1FotoPrev').style.display=''; } else if(!$('c1FotoUrl').value) $('c1FotoPrev').style.display='none';
+    }
+    async function c1Upload(){
+      const f=$('c1FFoto').files[0];
+      if(!f) return { key: $('c1ImageKey').value||null, url: $('c1FotoUrl').value||null };
+      let blob=f, mime=f.type||'image/jpeg', fname=f.name;
+      try{ blob=await kCompressImage(f); mime='image/jpeg'; fname=f.name.replace(/\.[a-z0-9]+$/i,'')+'.jpg'; }catch(e){}
+      $('c1FotoStat').textContent='Mengompres & mengunggah C1...';
+      const upRes=await fetch(`${location.origin}/api/c1/upload-request?filename=${encodeURIComponent(fname)}&content_type=${encodeURIComponent(mime)}`);
+      const up=await upRes.json(); if(!up.success) throw new Error(up.error||'gagal minta upload');
+      const put=await fetch(up.upload_url,{method:'PUT',headers:{'Content-Type':mime},body:blob});
+      if(!put.ok) throw new Error(`upload C1 gagal ${put.status}`);
+      $('c1FotoUrl').value=up.image_url; $('c1ImageKey').value=up.image_key;
+      $('c1FotoStat').textContent='C1 terunggah ✓';
+      return { key: up.image_key, url: up.image_url };
+    }
+    function c1Cancel(){
+      $('c1FDpt').value=''; $('c1FHadir').value=''; $('c1FSah').value=''; $('c1FBatal').value=''; $('c1FFoto').value=''; $('c1FotoUrl').value=''; $('c1ImageKey').value=''; $('c1FotoPrev').style.display='none'; $('c1FotoStat').textContent='Belum pilih foto C1'; $('c1DetailBox').innerHTML='<div style="text-align:center; color:var(--muted); font-size:12px; padding:12px; border:1px dashed var(--border); border-radius:10px;">Pilih kategori untuk memuat kandidat</div>'; c1Calc(); $('c1Msg').textContent='';
+    }
+    async function c1Save(){
+      const tps=$('c1FTps').value, kat=$('c1FKat').value;
+      const dpt=parseInt($('c1FDpt').value,10), hadir=parseInt($('c1FHadir').value,10), sah=parseInt($('c1FSah').value,10), batal=parseInt($('c1FBatal').value,10);
+      if(!tps){ alert('Pilih TPS'); return; }
+      if(!kat){ alert('Pilih Kategori'); return; }
+      if(isNaN(dpt)||isNaN(hadir)||isNaN(sah)||isNaN(batal)){ alert('Isi DPT, Hadir, Sah, Batal (angka)'); return; }
+      if(hadir > dpt){ alert(`Hadir (${hadir}) tidak boleh > DPT (${dpt})`); return; }
+      if(sah + batal !== hadir){ alert(`Hadir (${hadir}) harus = Sah (${sah}) + Batal (${batal})`); return; }
+      const detail=[...document.querySelectorAll('#c1DetailBox input[data-kandidat]')].map(el=>({ kandidat_id: el.dataset.kandidat, jumlah_suara: parseInt(el.value,10)||0 })).filter(x=>x.jumlah_suara>0);
+      const sumDetail=detail.reduce((a,b)=>a+b.jumlah_suara,0);
+      if(detail.length===0){ alert('Isi minimal 1 detail suara per kandidat'); return; }
+      if(sumDetail !== sah){ alert(`Total detail (${sumDetail}) harus = Suara Sah (${sah})`); return; }
+      try{
+        $('c1Msg').textContent='Mengunggah foto C1...';
+        const up=await c1Upload();
+        if(!up.key){ alert('Upload foto C1 wajib'); return; }
+        $('c1Msg').textContent='Mengirim ke antrean...';
+        await wFetchJSON(`${location.origin}/api/c1/submit`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ tps_id:tps, kategori_pemilihan_id:kat, image_key:up.key, suara_sah:sah, suara_tidak_sah:batal, detail_suara:detail, jumlah_dpt:dpt, jumlah_hadir:hadir })});
+        $('c1Msg').innerHTML='<span style="color:var(--ok);font-weight:700;">✅ Berhasil masuk antrean BullMQ — cek Dashboard</span>';
+        c1Cancel(); c1Load(0);
+      }catch(e){ $('c1Msg').innerHTML=`<span style="color:var(--err)">Gagal: ${wEsc(e.message)}</span>`; }
+    }
+    async function c1Load(offset){
+      c1Offset=Math.max(0,offset);
+      try{
+        const p=new URLSearchParams({limit:C1_LIMIT, offset:c1Offset});
+        if($('c1FFilterKat').value) p.set('kategori_pemilihan_id', $('c1FFilterKat').value);
+        if($('c1FFilterTps').value.trim()) p.set('tps', $('c1FFilterTps').value.trim());
+        const d=await wFetchJSON(`${location.origin}/api/admin/transaksi?${p.toString()}`);
+        $('c1PageInfo').textContent=`Total ${d.total} · tampil ${d.total?d.offset+1:0}–${d.offset+d.data.length}`;
+        $('c1TotalBadge').textContent=d.total+' data';
+        $('c1BodyRows').innerHTML=d.data.map(t=>`
+          <tr>
+            <td style="white-space:nowrap; font-size:11px;">${new Date(t.created_at).toLocaleString('id-ID')}</td>
+            <td><strong style="font-family:monospace; font-size:11px; background:#f8fafc; padding:2px 6px; border-radius:6px; border:1px solid #f1f5f9;">${wEsc(t.tps_id)}</strong></td>
+            <td><span class="badge">${wEsc(t.kategori_pemilihan_id)}</span></td>
+            <td>${wEsc(t.jumlah_dpt ?? '-')}</td>
+            <td>${wEsc(t.jumlah_hadir ?? '-')}</td>
+            <td><span style="color:var(--ok); font-weight:800;">${wEsc(t.total_suara_sah)}</span></td>
+            <td><span style="color:var(--err); font-weight:800;">${wEsc(t.total_suara_tidak_sah)}</span></td>
+            <td><a href="${wEsc(t.image_url)}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; background:var(--text); color:#fff; padding:5px 8px; border-radius:7px; font-size:11px; text-decoration:none;">Lihat ↗</a></td>
+            <td>${t.status_ocr===1?'<span class="badge" style="background:#dcfce7;color:#14532d;border-color:#bbf7d0;">ok</span>': t.status_ocr===2?'<span class="badge" style="background:#fee2e2;color:#991b1b;border-color:#fecaca;">gagal</span>':'<span class="badge" style="background:#fef3c7;color:#92400e;border-color:#fde68a;">pending</span>'}</td>
+          </tr>`).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--muted);">Belum ada transaksi</td></tr>';
+      }catch(e){ $('c1BodyRows').innerHTML=`<tr><td colspan="9" style="text-align:center;color:var(--err);">${wEsc(e.message)}</td></tr>`; }
+    }
+    function c1Page(d){ c1Load(c1Offset + d*C1_LIMIT); }
 
     // ================= DASHBOARD ADMIN =================
     const AAPI = location.origin + '/api/admin';
